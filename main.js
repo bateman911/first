@@ -1,0 +1,8 @@
+import './style.css'
+
+document.querySelector('#app').innerHTML = `
+  <div>
+    <h1>Hello World!</h1>
+    <p>Welcome to your first project.</p>
+  </div>
+`
