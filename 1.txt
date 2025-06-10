@@ -1,0 +1,110 @@
+Client ID 
+687497616750-05suqgo1nuv2hftc7chj28cs9sj4f063.apps.googleusercontent.com
+Client Secret
+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
+
+
+
+
+2. Контракты и Реневалы (Блок 3)
+2.1. Изменения в БД:
+Таблица user_cards:
+ALTER TABLE user_cards
+ADD COLUMN IF NOT EXISTS games_remaining INT DEFAULT 20, -- Начальное количество игр
+ADD COLUMN IF NOT EXISTS renewals_left INT DEFAULT 5;   -- Начальное количество продлений
+Use code with caution.
+SQL
+Таблица contract_item_templates (шаблоны контрактов):
+CREATE TABLE IF NOT EXISTS contract_item_templates (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    quality VARCHAR(20) NOT NULL, -- 'Green', 'Gold'
+    games_added_min INT NOT NULL,
+    games_added_max INT NOT NULL, -- Для диапазона, если хотите случайное количество игр
+    image_url VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+-- Примеры
+INSERT INTO contract_item_templates (name, quality, games_added_min, games_added_max, description) VALUES
+('Зеленый Контракт', 'Green', 15, 49, 'Продлевает контракт на 15-49 игр'),
+('Золотой Контракт', 'Gold', 50, 100, 'Значительно продлевает контракт на 50-100 игр')
+ON CONFLICT (name) DO NOTHING;
+Use code with caution.
+SQL
+Таблица user_contracts_inventory (контракты у пользователя):
+CREATE TABLE IF NOT EXISTS user_contracts_inventory (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    contract_template_id INT NOT NULL REFERENCES contract_item_templates(id) ON DELETE CASCADE,
+    quantity INT NOT NULL DEFAULT 1,
+    acquired_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, contract_template_id)
+);
+Use code with caution.
+SQL
+2.2. Бэкенд: API и Логика
+Добавьте в src/routes/inventoryRoutes.js или новый contractRoutes.js.
+GET /api/inventory/my-contracts (Получить инвентарь контрактов):
+Аналогично /my-boosts, возвращает список контрактов пользователя из user_contracts_inventory с JOIN к contract_item_templates.
+POST /api/cards/:userCardId/apply-contract (Применить контракт):
+Вход: user_card_id, user_contract_inventory_id.
+Логика (в транзакции):
+Проверить, что user_card_id принадлежит пользователю.
+Проверить, что user_contract_inventory_id принадлежит пользователю и quantity > 0.
+Получить данные контракта (особенно games_added_min, games_added_max).
+Получить renewals_left для user_card_id.
+Если renewals_left <= 0, вернуть ошибку "Нет доступных продлений для этого игрока" (если это не "Восстановление").
+Определить количество добавляемых игр (случайно в диапазоне min-max или фиксировано).
+UPDATE user_cards SET games_remaining = games_remaining + X, renewals_left = renewals_left - 1 WHERE id = user_card_id.
+Уменьшить quantity контракта в user_contracts_inventory (или удалить, если 0).
+Вернуть обновленные games_remaining, renewals_left и количество контракта.
+Логика уменьшения games_remaining: Это будет происходить после симуляции матча. Если матч успешно завершен, для всех user_card_id, участвовавших в матче, нужно будет сделать UPDATE user_cards SET games_remaining = games_remaining - 1 WHERE id = ANY($1::int[]).
+Логика "старого" игрока и Восстановления: Отдельный API, как вы описывали.
+2.3. Фронтенд: UI для контрактов
+На player-card-view.html:
+Отображать Games Remaining: X и Renewals Left: Y.
+Если games_remaining <= 0 (или <5, например), показывать предупреждение.
+Кнопка "Продлить контракт", если renewals_left > 0.
+Кнопка "Восстановить игрока", если renewals_left = 0 и games_remaining = 0.
+Модальное окно для выбора контракта: При клике на "Продлить контракт" открывается модалка со списком доступных контрактов пользователя (из /api/inventory/my-contracts). При выборе контракта – вызов API /apply-contract.
+3. Экономика - Паки (Блок 4) - Только проектирование таблиц
+pack_templates:
+id (PK)
+name (VARCHAR, 'Bronze Pack', 'Silver Pack')
+description (TEXT)
+cost_coins (INT, NULLable)
+cost_bucks (INT, NULLable)
+image_url (VARCHAR)
+availability_rules (JSONB, например {"type": "timed", "startTime": "четверг 21:00", "durationHours": 24} или {"type": "always"})
+is_visible (BOOLEAN, для скрытия/показа в магазине)
+pack_template_contents (что может выпасть):
+Это самая сложная часть. Несколько подходов:
+"Слоты" в паке:
+id (PK)
+pack_template_id (FK к pack_templates)
+slot_number (INT, номер "карты" в паке, если их несколько гарантированно)
+slot_description (VARCHAR, например, "Гарантированный бронзовый игрок", "Шанс на предмет редкости X")
+Таблица вероятностей для каждого слота/пака (pack_drop_pool):
+id (PK)
+pack_template_id (FK или pack_content_slot_id FK к предыдущей таблице)
+item_category (VARCHAR: 'player_card', 'boost_template', 'contract_template', 'bi_card_template', 'uniform_template', 'skill_add_card_type')
+rarity_or_tier (VARCHAR, NULLable: 'Bronze', 'Silver', 'Gold', 'Epic', 'Legendary', 'Синяя БИ', 'Золотая БИ') - для фильтрации пула предметов.
+item_template_id (INT, NULLable, если конкретный предмет)
+min_quantity (INT, DEFAULT 1)
+max_quantity (INT, DEFAULT 1)
+drop_weight (INT) - не шанс, а "вес". Шанс будет вес_этого_предмета / сумма_всех_весов_в_этом_пуле.
+is_guaranteed (BOOLEAN) - если этот предмет/тип гарантированно выпадает.
+Проектирование pack_contents требует очень тщательного продумывания вашей системы лута.
+Для "Big Rush" с одним игроком-суперзвездой это может быть отдельная логика или пак с одним слотом и очень специфичным пулом дропа.
+4. Симуляция матча (Затрагиваем только то, что влияет на статы)
+Когда вы будете реализовывать симуляцию:
+Загрузка игроков команды: Получить user_card_id из team_rosters.
+Для каждого user_card_id:
+Получить его базовые данные из user_cards JOIN cards (включая все базовые статы, games_remaining, renewals_left).
+Получить его примененные скиллы из user_card_applied_skills.
+Рассчитать модифицированные статы: Применить boost_points_added от скиллов к базовым статам (как в calculateModifiedStats на фронте, но теперь на бэке).
+Применить штраф от контракта: Если games_remaining <= 0 И renewals_left == 0 (старый игрок) ИЛИ games_remaining <= 0 (просто кончился контракт), уменьшить рассчитанные статы на 50%.
+Применить бонус от сыгранности: Если team_chemistry_points для команды = max, прибавить +5 ко всем статам (или к OVR).
+Применить эффекты от карт Big Impact: Если игрок выбрал БИ карты, их эффекты модифицируют статы команды/игроков на время матча (или его части).
+Эти финальные, боевые статы используются в алгоритме симуляции матча.
