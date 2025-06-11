@@ -196,6 +196,16 @@ module.exports = new Proxy({}, {
     if (prop === 'connect') {
       return async (...args) => {
         const db = await initPool();
+        
+        // Check if this is a mock database and bypass connection test
+        if (db.isMock) {
+          return {
+            query: db.query,
+            release: () => {},
+            on: () => {}
+          };
+        }
+        
         return db.connect(...args);
       };
     }
