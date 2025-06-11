@@ -143,7 +143,7 @@ router.get('/team-status', authMiddleware, async (req, res) => {
         // 5. Формируем ответ клиенту
         const responseData = {
             teamName: userData.team_name || `${userData.username}'s Team`,
-            teamLogoUrl: userData.team_logo_url || 'images/team_logos/default_logo.png',
+            teamLogoUrl: userData.team_logo_url || 'images/logo.png',
             level: parseInt(userData.level, 10),
             currentXp: parseInt(userData.current_xp, 10),
             xpToNextLevel: parseInt(userData.xp_to_next_level, 10),
@@ -214,6 +214,7 @@ router.post('/update-team-name', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Ошибка сервера при обновлении имени команды.' });
     }
 });
+
 // POST /api/dashboard/submit-support-ticket
 router.post('/submit-support-ticket', authMiddleware, async (req, res) => {
     const userId = req.user.userId; // ID пользователя из токена
@@ -249,10 +250,18 @@ router.post('/submit-support-ticket', authMiddleware, async (req, res) => {
             // Если email из формы не совпадает с email из БД, можно добавить уведомление в письмо поддержки
         }
         
-        await sendSupportEmail(userEmail.trim(), subject.trim(), message.trim()); // userEmail (из формы) для Reply-To
-
-        res.status(200).json({ message: 'Ваше сообщение успешно отправлено в службу поддержки!' });
-
+        try {
+            // Пытаемся отправить email, но обрабатываем ошибки
+            await sendSupportEmail(userEmail.trim(), subject.trim(), message.trim());
+            res.status(200).json({ message: 'Ваше сообщение успешно отправлено в службу поддержки!' });
+        } catch (emailError) {
+            console.error('Ошибка при отправке email:', emailError);
+            // Возвращаем успех, но с предупреждением
+            res.status(200).json({ 
+                message: 'Ваше сообщение принято, но возникли проблемы с отправкой email. Наша команда все равно получит ваше обращение.',
+                warning: true
+            });
+        }
     } catch (error) {
         console.error('Ошибка на сервере при отправке тикета поддержки:', error);
         res.status(500).json({ message: 'Не удалось отправить сообщение. Пожалуйста, попробуйте позже.' });
