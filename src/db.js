@@ -3,7 +3,9 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // Check if we're in a development environment without PostgreSQL
-const isDevelopmentWithoutDB = process.env.NODE_ENV === 'development' && !process.env.POSTGRES_AVAILABLE;
+// Parse POSTGRES_AVAILABLE as boolean since env vars are strings
+const postgresAvailable = process.env.POSTGRES_AVAILABLE === 'true';
+const isDevelopmentWithoutDB = process.env.NODE_ENV === 'development' && !postgresAvailable;
 
 let pool = null;
 
