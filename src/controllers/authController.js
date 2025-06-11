@@ -40,7 +40,7 @@ exports.register = async (req, res) => {
         console.error('Ошибка регистрации:', error);
         
         // For mock database, return success to allow testing
-        if (error.message && error.message.includes('Mock DB')) {
+        if (db.isMock) {
             const mockUser = { id: 1, username, email };
             return res.status(201).json({
                 message: 'Пользователь успешно зарегистрирован (mock database)',
@@ -65,7 +65,7 @@ exports.login = async (req, res) => {
         // For mock database, create a test user if none exists
         if (!result.rows || result.rows.length === 0) {
             // Check if we're using mock DB
-            if (db.query.toString().includes('Mock DB')) {
+            if (db.isMock) {
                 // Create a mock user for testing
                 const hashedPassword = await bcrypt.hash('password', SALT_ROUNDS);
                 const mockUser = {

@@ -1,5 +1,4 @@
 // src/db.js
-const { Pool } = require('pg');
 require('dotenv').config();
 
 // Mock database for development when no real database is available
@@ -85,7 +84,8 @@ const createMockDb = () => {
         on: () => {}
       };
     },
-    on: () => {}
+    on: () => {},
+    isMock: true
   };
 };
 
@@ -101,6 +101,9 @@ try {
     console.log('⚠️  No database configuration found - using mock database');
     pool = createMockDb();
   } else {
+    // Only require pg module when we actually need it
+    const { Pool } = require('pg');
+    
     // Configure real database connection
     const connectionConfig = dbUrl ? 
       { connectionString: dbUrl } : 
@@ -124,6 +127,7 @@ try {
         // Don't reassign pool here as it would cause race conditions
       });
       
+      pool.isMock = false;
       console.log('✅ PostgreSQL pool initialized');
     } catch (poolError) {
       console.error('❌ Error creating PostgreSQL pool:', poolError.message);
