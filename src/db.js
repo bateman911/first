@@ -120,7 +120,59 @@ const createMockDb = () => {
         base_positioning: 70
       }
     ],
-    user_cards: [],
+    user_cards: [
+      // Pre-populate with sample data for user 1
+      {
+        id: 1,
+        user_id: 1,
+        card_template_id: 1,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 2,
+        user_id: 1,
+        card_template_id: 2,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 3,
+        user_id: 1,
+        card_template_id: 3,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 4,
+        user_id: 1,
+        card_template_id: 4,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 5,
+        user_id: 1,
+        card_template_id: 5,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      }
+    ],
     team_rosters: [],
     user_big_impact_cards: [],
     big_impact_card_templates: [
@@ -224,7 +276,7 @@ const createMockDb = () => {
   const lastIds = {
     users: 0,
     cards: 5,
-    user_cards: 0,
+    user_cards: 5,
     team_rosters: 0,
     user_big_impact_cards: 0,
     big_impact_card_templates: 3,
@@ -280,6 +332,13 @@ const createMockDb = () => {
           const userId = params[1];
           const userCard = storage.user_cards.find(uc => uc.id === parseInt(userCardId) && uc.user_id === parseInt(userId));
           return { rows: userCard ? [{ id: userCard.id }] : [] };
+        }
+        
+        // Handle COUNT queries for user_card_applied_skills
+        if (text.includes('SELECT COUNT(*) FROM user_card_applied_skills')) {
+          const userCardId = params[0];
+          const count = storage.user_card_applied_skills.filter(s => s.user_card_id === parseInt(userCardId)).length;
+          return { rows: [{ count }] };
         }
         
         // Handle card queries
