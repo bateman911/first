@@ -150,17 +150,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     console.warn('⚠️  Google OAuth credentials not found in environment variables. Google authentication will be disabled.');
 }
 
-// Routes
+// API Routes - Mount ALL API routes BEFORE static file serving
+app.use('/api/auth', authRoutes);
+app.use('/api/cards', cardRoutes);
 app.use('/api/dashboard', dashboardRoutes); 
 app.use('/api/team', teamRoutes);
 app.use('/api/inventory', inventoryRoutes);
 
-// Middleware для раздачи статических файлов (frontend)
+// Middleware для раздачи статических файлов (frontend) - AFTER all API routes
 app.use(express.static('dist')); // Папка 'dist' для HTML, CSS, JS клиента
-
-// Подключение маршрутов аутентификации
-app.use('/api/auth', authRoutes);
-app.use('/api/cards', cardRoutes);
 
 // Простой корневой маршрут для проверки
 app.get('/', (req, res) => {
