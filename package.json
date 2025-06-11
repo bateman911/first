@@ -1,4 +1,14 @@
 {
+  "name": "big-win-hockey",
+  "version": "1.0.0",
+  "description": "Hockey management game",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "build": "echo 'Building frontend...' && cp -r public dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "dotenv": "^16.5.0",
@@ -8,5 +18,8 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.0"
-  }
+  },
+  "keywords": ["hockey", "game", "management"],
+  "author": "",
+  "license": "ISC"
 }
