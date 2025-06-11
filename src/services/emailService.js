@@ -2,13 +2,16 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+// Check if we're in a development environment without SMTP
+const isDevelopmentWithoutSMTP = process.env.NODE_ENV === 'development' && !process.env.SMTP_AVAILABLE;
+
 // Create a transporter with improved configuration
 let transporter = null;
 
 // Initialize transporter only when needed, not on module load
 function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
+  if (!transporter && !isDevelopmentWithoutSMTP) {
+    transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: (process.env.SMTP_SECURE || 'false') === 'true', // true for 465, false for other ports
@@ -17,9 +20,9 @@ function getTransporter() {
         pass: process.env.SMTP_PASS || '',
       },
       // Add connection timeout settings
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,   // 10 seconds
-      socketTimeout: 10000,     // 10 seconds
+      connectionTimeout: 5000, // 5 seconds
+      greetingTimeout: 5000,   // 5 seconds
+      socketTimeout: 5000,     // 5 seconds
       // Disable TLS verification for development
       tls: {
         rejectUnauthorized: false
@@ -36,13 +39,24 @@ function getTransporter() {
  * Verify SMTP configuration - only called when explicitly needed
  */
 async function verifyTransporter() {
+  if (isDevelopmentWithoutSMTP) {
+    console.log("SMTP verification skipped in development mode without SMTP");
+    return true;
+  }
+
   try {
     const transport = getTransporter();
+    if (!transport) {
+      console.log("SMTP транспортер не инициализирован");
+      return false;
+    }
+    
     await transport.verify();
     console.log("SMTP транспортер успешно сконфигурирован и готов к отправке писем.");
     return true;
   } catch (error) {
     console.error("Ошибка конфигурации SMTP транспортера:", error.message);
+    console.log("Приложение продолжит работу без функции отправки email");
     return false;
   }
 }
@@ -55,9 +69,9 @@ async function verifyTransporter() {
  * @returns {Promise<object>} - Информация об отправленном письме или ошибка.
  */
 async function sendSupportEmail(userEmail, subject, message) {
-  // Skip email sending in development environment
-  if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
-    console.log('Email sending skipped in development mode or missing SMTP configuration');
+  // Skip email sending in development environment or when SMTP is not available
+  if (isDevelopmentWithoutSMTP || process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
+    console.log('Email sending skipped - development mode or missing SMTP configuration');
     console.log(`Would send email to: ${process.env.SUPPORT_EMAIL_TO || 'support@example.com'}`);
     console.log(`From: ${userEmail}, Subject: ${subject}, Message: ${message}`);
     return { messageId: 'dev-mode-skip', success: true };
@@ -81,10 +95,11 @@ async function sendSupportEmail(userEmail, subject, message) {
   };
 
   try {
-    // Only verify when actually sending
+    // Only verify when actually sending and not in development
     const isVerified = await verifyTransporter();
     if (!isVerified) {
-      console.warn('SMTP configuration failed verification, but attempting to send anyway');
+      console.warn('SMTP configuration failed verification, email not sent');
+      return { messageId: 'smtp-unavailable', success: false, error: 'SMTP not available' };
     }
     
     const transport = getTransporter();
@@ -92,8 +107,9 @@ async function sendSupportEmail(userEmail, subject, message) {
     console.log('Письмо поддержки успешно отправлено: %s', info.messageId);
     return info;
   } catch (error) {
-    console.error('Ошибка при отправке письма поддержки:', error);
-    throw error;
+    console.error('Ошибка при отправке письма поддержки:', error.message);
+    // Don't throw the error, just return failure info
+    return { messageId: 'send-failed', success: false, error: error.message };
   }
 }
 
