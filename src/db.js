@@ -96,6 +96,28 @@ const createMockDb = () => {
         base_reflexes: 80,
         base_puck_control: 75,
         base_positioning: 85
+      },
+      {
+        id: 5,
+        player_name: 'Alex Blocker',
+        image_url: 'defenseman.png',
+        position: 'Defenseman',
+        rarity: 'Common',
+        base_attack: 50,
+        base_defense: 75,
+        base_speed: 55,
+        base_stamina: 70,
+        description: 'Solid defenseman',
+        base_ovr: 63,
+        tier: 'bronze',
+        base_skating: 55,
+        base_shooting: 45,
+        base_passing: 60,
+        base_defense_skill: 75,
+        base_physical: 70,
+        base_reflexes: 45,
+        base_puck_control: 65,
+        base_positioning: 70
       }
     ],
     user_cards: [],
@@ -201,7 +223,7 @@ const createMockDb = () => {
   // Last ID tracking for auto-increment
   const lastIds = {
     users: 0,
-    cards: 4,
+    cards: 5,
     user_cards: 0,
     team_rosters: 0,
     user_big_impact_cards: 0,
