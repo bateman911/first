@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { initializeDatabase } = require('./db');
+require('./db'); // Database connection is established when this module is required
 const { initializeEmailService } = require('./services/emailService');
 
 // Import routes
@@ -34,9 +34,6 @@ app.get('/', (req, res) => {
 // Initialize services and start server
 async function startServer() {
     try {
-        // Initialize database first
-        await initializeDatabase();
-        
         // Initialize email service (non-blocking)
         initializeEmailService().catch(err => {
             console.log('⚠️  Email service initialization failed, continuing without email functionality');
