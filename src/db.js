@@ -330,7 +330,7 @@ const createMockDb = () => {
         if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
           const userCardId = params[0];
           const userId = params[1];
-          const userCard = storage.user_cards.find(uc => uc.id === parseInt(userCardId) && uc.user_id === parseInt(userId));
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
           return { rows: userCard ? [{ id: userCard.id }] : [] };
         }
         
