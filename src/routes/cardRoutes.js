@@ -118,7 +118,7 @@ router.post('/starter-pack', authMiddleware, async (req, res) => {
                     ct.rarity, ct.base_attack, ct.base_defense, ct.base_speed, ct.base_stamina, ct.description
                 FROM user_cards uc
                 JOIN cards ct ON uc.card_template_id = ct.id
-                WHERE uc.id = ANY($1::int[])`; // Используем ANY для массива ID
+                WHERE uc.id = ANY($1::int[])`;
 
             const detailedNewCardsResult = await client.query(detailedNewCardsQuery, [createdUserCardIds]);
 
