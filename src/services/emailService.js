@@ -15,8 +15,8 @@ async function initializeEmailService() {
             return;
         }
 
-        // Create transporter with timeout and connection settings
-        transporter = nodemailer.createTransport({
+        // Create transporter with improved timeout and connection settings
+        transporter = nodemailer.createTransporter({
             host: process.env.SMTP_HOST,
             port: parseInt(process.env.SMTP_PORT) || 587,
             secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -24,21 +24,38 @@ async function initializeEmailService() {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
             },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 10000, // 10 seconds
-            socketTimeout: 10000, // 10 seconds
+            connectionTimeout: 30000, // 30 seconds
+            greetingTimeout: 30000, // 30 seconds
+            socketTimeout: 30000, // 30 seconds
+            // Add pool settings for better connection management
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 100,
+            // Add TLS options for better compatibility
+            tls: {
+                rejectUnauthorized: false // Allow self-signed certificates in development
+            }
         });
 
-        // Test the connection with a timeout
+        // Test the connection with a longer timeout and better error handling
         const testConnection = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-                reject(new Error('Connection test timeout'));
-            }, 15000); // 15 second timeout
+                reject(new Error('SMTP connection test timeout after 30 seconds'));
+            }, 30000); // 30 second timeout
 
             transporter.verify((error, success) => {
                 clearTimeout(timeout);
                 if (error) {
-                    reject(error);
+                    // Provide more specific error information
+                    if (error.code === 'ECONNREFUSED') {
+                        reject(new Error(`SMTP server connection refused. Check if ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} is accessible.`));
+                    } else if (error.code === 'ENOTFOUND') {
+                        reject(new Error(`SMTP server not found. Check if ${process.env.SMTP_HOST} is correct.`));
+                    } else if (error.code === 'ETIMEDOUT') {
+                        reject(new Error('SMTP connection timed out. Check network connectivity and firewall settings.'));
+                    } else {
+                        reject(new Error(`SMTP error: ${error.message}`));
+                    }
                 } else {
                     resolve(success);
                 }
@@ -52,6 +69,12 @@ async function initializeEmailService() {
     } catch (error) {
         console.log(`⚠️  SMTP configuration error: ${error.message}`);
         console.log('📧 Email functionality will be disabled');
+        console.log('💡 To enable email, check your SMTP settings in the .env file:');
+        console.log('   - SMTP_HOST: Your SMTP server hostname');
+        console.log('   - SMTP_PORT: Usually 587 for TLS or 465 for SSL');
+        console.log('   - SMTP_USER: Your email username');
+        console.log('   - SMTP_PASS: Your email password or app password');
+        console.log('   - SMTP_SECURE: Set to "true" for port 465, "false" for port 587');
         emailEnabled = false;
         transporter = null;
     }

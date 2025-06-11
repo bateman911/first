@@ -39,40 +39,45 @@ const createMockDb = () => {
     query: async (text, params) => {
       console.log('Mock DB Query:', { text, params });
       
-      // Handle basic queries
-      if (text.includes('SELECT * FROM users WHERE email =')) {
-        const email = params[0];
-        const user = storage.users.find(u => u.email === email);
-        return { rows: user ? [user] : [] };
+      try {
+        // Handle basic queries
+        if (text.includes('SELECT * FROM users WHERE email =')) {
+          const email = params[0];
+          const user = storage.users.find(u => u.email === email);
+          return { rows: user ? [user] : [] };
+        }
+        
+        if (text.includes('INSERT INTO users')) {
+          const [username, email, password_hash] = params;
+          const id = ++lastIds.users;
+          const newUser = { 
+            id, 
+            username, 
+            email, 
+            password_hash,
+            created_at: new Date().toISOString(),
+            current_energy: 7,
+            max_energy: 7,
+            level: 1,
+            current_xp: 0,
+            xp_to_next_level: 100,
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            gold: 0,
+            bucks: 0,
+            team_name_changes_count: 0
+          };
+          storage.users.push(newUser);
+          return { rows: [{ id, username, email }] };
+        }
+        
+        // Default response for unhandled queries
+        return { rows: [], rowCount: 0 };
+      } catch (error) {
+        console.error('Mock DB Query Error:', error);
+        return { rows: [], rowCount: 0 };
       }
-      
-      if (text.includes('INSERT INTO users')) {
-        const [username, email, password_hash] = params;
-        const id = ++lastIds.users;
-        const newUser = { 
-          id, 
-          username, 
-          email, 
-          password_hash,
-          created_at: new Date().toISOString(),
-          current_energy: 7,
-          max_energy: 7,
-          level: 1,
-          current_xp: 0,
-          xp_to_next_level: 100,
-          wins: 0,
-          losses: 0,
-          draws: 0,
-          gold: 0,
-          bucks: 0,
-          team_name_changes_count: 0
-        };
-        storage.users.push(newUser);
-        return { rows: [{ id, username, email }] };
-      }
-      
-      // Default response for unhandled queries
-      return { rows: [], rowCount: 0 };
     },
     connect: async () => {
       return {
@@ -85,60 +90,133 @@ const createMockDb = () => {
       };
     },
     on: () => {},
+    end: () => Promise.resolve(),
     isMock: true
   };
 };
 
-// Determine if we should use a real database or mock - synchronously
-let pool;
+// Initialize database connection with better error handling
+async function initializeDatabase() {
+  try {
+    // Check if we have database configuration
+    const dbUrl = process.env.DATABASE_URL;
+    const dbHost = process.env.DB_HOST;
+    
+    if (!dbUrl && !dbHost) {
+      console.log('⚠️  No database configuration found - using mock database');
+      return createMockDb();
+    }
 
-try {
-  // Check if we have database configuration
-  const dbUrl = process.env.DATABASE_URL;
-  const dbHost = process.env.DB_HOST;
-  
-  if (!dbUrl && !dbHost) {
-    console.log('⚠️  No database configuration found - using mock database');
-    pool = createMockDb();
-  } else {
     // Only require pg module when we actually need it
     const { Pool } = require('pg');
     
-    // Configure real database connection
+    // Configure real database connection with better error handling
     const connectionConfig = dbUrl ? 
-      { connectionString: dbUrl } : 
+      { 
+        connectionString: dbUrl,
+        connectionTimeoutMillis: 5000,
+        idleTimeoutMillis: 30000,
+        max: 10
+      } : 
       {
         user: process.env.DB_USER,
         host: process.env.DB_HOST,
         database: process.env.DB_DATABASE,
         password: process.env.DB_PASSWORD,
-        port: parseInt(process.env.DB_PORT || "5432", 10)
+        port: parseInt(process.env.DB_PORT || "5432", 10),
+        connectionTimeoutMillis: 5000,
+        idleTimeoutMillis: 30000,
+        max: 10
       };
     
-    try {
-      pool = new Pool(connectionConfig);
-      
-      pool.on('connect', () => {
+    const pool = new Pool(connectionConfig);
+    
+    // Test the connection with timeout
+    const testConnection = async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('SELECT NOW()');
         console.log('✅ Connected to PostgreSQL database');
-      });
-      
-      pool.on('error', (err) => {
-        console.error('❌ Unexpected error on idle PostgreSQL client', err);
-        // Don't reassign pool here as it would cause race conditions
-      });
-      
-      pool.isMock = false;
-      console.log('✅ PostgreSQL pool initialized');
-    } catch (poolError) {
-      console.error('❌ Error creating PostgreSQL pool:', poolError.message);
-      console.log('⚠️  Falling back to mock database');
-      pool = createMockDb();
+        return true;
+      } catch (error) {
+        console.error('❌ Database connection test failed:', error.message);
+        return false;
+      } finally {
+        client.release();
+      }
+    };
+
+    // Test connection with timeout
+    const connectionTest = Promise.race([
+      testConnection(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 10000)
+      )
+    ]);
+
+    const isConnected = await connectionTest;
+    
+    if (!isConnected) {
+      throw new Error('Database connection test failed');
     }
+
+    pool.on('error', (err) => {
+      console.error('❌ Unexpected error on idle PostgreSQL client', err);
+    });
+    
+    pool.isMock = false;
+    return pool;
+    
+  } catch (error) {
+    console.error('❌ Error initializing database connection:', error.message);
+    console.log('⚠️  Falling back to mock database');
+    return createMockDb();
   }
-} catch (error) {
-  console.error('❌ Error initializing database connection:', error);
-  console.log('⚠️  Falling back to mock database');
-  pool = createMockDb();
 }
 
-module.exports = pool;
+// Initialize the pool
+let pool;
+
+const initPool = async () => {
+  if (!pool) {
+    pool = await initializeDatabase();
+  }
+  return pool;
+};
+
+// Export a proxy that initializes the pool on first use
+module.exports = new Proxy({}, {
+  get(target, prop) {
+    if (prop === 'query') {
+      return async (...args) => {
+        const db = await initPool();
+        return db.query(...args);
+      };
+    }
+    if (prop === 'connect') {
+      return async (...args) => {
+        const db = await initPool();
+        return db.connect(...args);
+      };
+    }
+    if (prop === 'on') {
+      return async (...args) => {
+        const db = await initPool();
+        return db.on(...args);
+      };
+    }
+    if (prop === 'end') {
+      return async (...args) => {
+        const db = await initPool();
+        return db.end(...args);
+      };
+    }
+    if (prop === 'isMock') {
+      return (async () => {
+        const db = await initPool();
+        return db.isMock;
+      })();
+    }
+    return target[prop];
+  }
+});
