@@ -2,13 +2,16 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Check if SMTP is configured
-const isSmtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+// Check if SMTP is configured - now includes SMTP_PORT validation
+const isSmtpConfigured = process.env.SMTP_HOST && 
+                        process.env.SMTP_USER && 
+                        process.env.SMTP_PASS && 
+                        process.env.SMTP_PORT;
 
 let transporter;
 
 if (isSmtpConfigured) {
-    transporter = nodemailer.createTransport({
+    transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT, 10),
         secure: process.env.SMTP_SECURE === 'true',
