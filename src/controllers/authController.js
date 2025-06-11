@@ -1,6 +1,6 @@
 // src/controllers/authController.js
-const db = require('../db'); // db теперь экспортирует { query: ... }
-const bcrypt = require('bcrypt');
+const db = require('../db'); // db now exports { query: ... }
+const bcrypt = require('bcryptjs'); // Changed from bcrypt to bcryptjs
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -68,7 +68,8 @@ exports.login = async (req, res) => {
             message: 'Успешный вход',
             token,
             userId: user.id,
-            username: user.username
+            username: user.username,
+            email: user.email // Added to return email for client storage
         });
 
     } catch (error) {
