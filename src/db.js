@@ -326,10 +326,10 @@ const createMockDb = () => {
           return { rows: [{ id, username, email }] };
         }
         
-        // Handle card ownership check - FIX: Cast parameters to numbers for proper comparison
+        // Handle card ownership check - FIX: Use parameters directly without parseInt
         if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
-          const userCardId = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
+          const userCardId = params[0];
+          const userId = params[1];
           const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
           return { rows: userCard ? [{ id: userCard.id }] : [] };
         }
