@@ -156,7 +156,7 @@ app.use('/api/team', teamRoutes);
 app.use('/api/inventory', inventoryRoutes);
 
 // Middleware для раздачи статических файлов (frontend)
-app.use(express.static('public')); // Папка 'public' для HTML, CSS, JS клиента
+app.use(express.static('dist')); // Папка 'dist' для HTML, CSS, JS клиента
 
 // Подключение маршрутов аутентификации
 app.use('/api/auth', authRoutes);
@@ -164,7 +164,7 @@ app.use('/api/cards', cardRoutes);
 
 // Простой корневой маршрут для проверки
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html'); // Отдаем главный HTML файл
+    res.sendFile(__dirname + '/dist/index.html'); // Отдаем главный HTML файл
 });
 
 app.listen(PORT, () => {
