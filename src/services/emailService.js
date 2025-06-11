@@ -2,7 +2,8 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
+// Create transporter with improved configuration and error handling
+const transporter = nodemailer.createTransporter({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT, 10),
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports (like 587)
@@ -10,19 +11,32 @@ const transporter = nodemailer.createTransport({
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
-    // Опционально: для TLS на порту 587, если secure: false
-    // tls: {
-    //     ciphers:'SSLv3' // Может понадобиться для некоторых конфигураций
-    // }
+    // Add connection timeout and other options for better reliability
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 60000, // 60 seconds
+    // TLS configuration for better compatibility
+    tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates if needed
+        ciphers: 'SSLv3'
+    },
+    // Pool configuration for better connection management
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
 });
 
-transporter.verify(function(error, success) { // Проверка конфигурации SMTP
-   if (error) {
-        console.error("Ошибка конфигурации SMTP транспортера:", error);
-   } else {
+// Verify SMTP configuration only when needed, not on module load
+async function verifyTransporter() {
+    try {
+        await transporter.verify();
         console.log("SMTP транспортер успешно сконфигурирован и готов к отправке писем.");
-   }
-});
+        return true;
+    } catch (error) {
+        console.error("Ошибка конфигурации SMTP транспортера:", error.message);
+        return false;
+    }
+}
 
 /**
  * Отправляет письмо поддержки.
@@ -32,6 +46,12 @@ transporter.verify(function(error, success) { // Проверка конфигу
  * @returns {Promise<object>} - Информация об отправленном письме или ошибка.
  */
 async function sendSupportEmail(userEmail, subject, message) {
+    // Verify transporter before sending
+    const isVerified = await verifyTransporter();
+    if (!isVerified) {
+        throw new Error('SMTP транспортер не сконфигурирован правильно');
+    }
+
     const mailOptions = {
         from: `"${process.env.APP_NAME || 'Hockey GM Support'}" <${process.env.SMTP_FROM_EMAIL}>`, // Отправитель
         to: process.env.SUPPORT_EMAIL_TO, // Получатель (ваша почта поддержки)
@@ -61,4 +81,5 @@ async function sendSupportEmail(userEmail, subject, message) {
 
 module.exports = {
     sendSupportEmail,
+    verifyTransporter,
 };
