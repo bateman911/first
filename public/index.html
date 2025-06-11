@@ -4,7 +4,7 @@
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
-            background-color: #f0f2f5; /* Более мягкий фон */
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,18 +16,16 @@
         }
 
         .auth-container {
-
             background-color: #ffffff;
             padding: 30px 40px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 420px; /* Ограничиваем ширину для лучшего вида на десктопах */
+            max-width: 420px;
             text-align: center;
         }
 
         .auth-form-wrapper h2, .user-info-panel h2 {
-
             color: #1a2b40;
             margin-bottom: 25px;
             font-weight: 700;
@@ -78,11 +76,11 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
-            text-decoration: none; /* Для ссылок, стилизованных под кнопки */
+            text-decoration: none;
         }
 
         .btn-primary {
-            background-color: #007bff; /* Основной синий */
+            background-color: #007bff;
             color: white;
         }
 
@@ -92,7 +90,7 @@
         }
 
         .btn-secondary {
-            background-color: #6c757d; /* Серый для второстепенных действий */
+            background-color: #6c757d;
             color: white;
             margin-top: 15px;
         }
@@ -102,8 +100,7 @@
             transform: translateY(-2px);
         }
 
-
-        hr#formSeparator { /* Стили для разделителя */
+        hr#formSeparator {
             margin: 30px 0;
             border: 0;
             border-top: 1px solid #e0e0e0;
@@ -112,17 +109,30 @@
         .form-message {
             margin-top: 15px;
             font-size: 0.9em;
-            min-height: 1.2em; /* Чтобы не прыгал макет при появлении сообщения */
+            min-height: 1.2em;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid transparent;
         }
 
-        .form-message.success { /* Можете использовать эти классы в JS вместо прямого style.color */
-            color: green;
+        .form-message.success {
+            color: #155724;
+            background-color: #d4edda;
+            border-left-color: #28a745;
         }
+        
         .form-message.error {
-            color: red;
+            color: #721c24;
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        
+        .form-message.warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
         }
 
-        /* Стили для панели информации о пользователе */
         .user-info-panel {
             text-align: center;
         }
@@ -135,31 +145,31 @@
             color: #007bff;
         }
 
-        #userActions a { /* Ссылка на коллекцию */
+        #userActions a {
             display: block;
-            background-color: #28a745; /* Зеленый для перехода к игре */
+            background-color: #28a745;
             color: white;
             padding: 10px 15px;
             text-decoration: none;
             border-radius: 5px;
             margin: 15px auto;
-            width: fit-content; /* Ширина по содержимому */
+            width: fit-content;
             transition: background-color 0.3s ease;
         }
         #userActions a:hover {
             background-color: #1e7e34;
         }
 
-        /* Адаптивность (если контейнер слишком широкий на мобильных) */
         @media (max-width: 480px) {
             .auth-container {
                 padding: 20px;
-                margin: 10px; /* Не прилипать к краям */
+                margin: 10px;
             }
             .auth-form-wrapper h2, .user-info-panel h2 {
                 font-size: 1.5em;
             }
         }
+        
         .social-login-options {
             margin-top: 25px;
             text-align: center;
@@ -170,10 +180,10 @@
             font-size: 0.9em;
         }
         .btn-social {
-            display: inline-flex; /* Чтобы иконка и текст были в ряд */
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: auto; /* Не на всю ширину */
+            width: auto;
             padding: 10px 20px;
             margin: 5px;
             border: 1px solid #ddd;
@@ -184,17 +194,53 @@
         .btn-social:hover {
             background-color: #f7f7f7;
             border-color: #ccc;
-            transform: translateY(-1px); /* Небольшой подъем */
+            transform: translateY(-1px);
         }
         .btn-google {
             /* Специфичные стили для кнопки Google, если нужно */
-            /* color: #4285F4; */ /* Или оставить цвет текста по умолчанию */
+        }
+
+        .database-notice {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .database-notice h3 {
+            color: #1976d2;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .database-notice p {
+            color: #424242;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .database-notice .btn-connect {
+            background-color: #2196f3;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .database-notice .btn-connect:hover {
+            background-color: #1976d2;
         }
     </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация/Вход</title>
-    <link rel="stylesheet" href="style.css"> <!-- Подключите свои стили -->
+    <title>Big Win Hockey - Регистрация/Вход</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
@@ -202,6 +248,12 @@
 </head>
 <body>
     <div class="auth-container">
+        <div class="database-notice">
+            <h3>🚀 Добро пожаловать в Big Win Hockey!</h3>
+            <p>Для полной функциональности приложения необходимо подключить базу данных.</p>
+            <p>Нажмите кнопку <strong>"Connect to Supabase"</strong> в правом верхнем углу.</p>
+        </div>
+
         <div class="auth-form-wrapper" id="registerSection">
             <h2>Регистрация</h2>
             <form id="registerForm">
@@ -238,15 +290,13 @@
                 <button type="submit" class="btn btn-primary">Войти</button>
             </form>
             <p id="loginMessage" class="form-message"></p>
-            <!-- Внутри .auth-form-wrapper или где вам удобно на index.html -->
+            
             <div class="social-login-options">
                 <p>Или войдите с помощью:</p>
                 <a href="/api/auth/google" class="btn btn-social btn-google">
                     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="18" height="18" style="vertical-align: middle; margin-right: 8px;">
                         <title>Google</title>
                         <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.344-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.254-3.138C18.189 1.186 15.479 0 12.24 0 5.48 0 0 5.48 0 12.24s5.48 12.24 12.24 12.24c7.052 0 11.99-4.929 11.99-12.097 0-.817-.073-1.559-.207-2.312z" fill="#4285F4"/>
-                        <!-- Иногда для цветных иконок брендов цвет задается через fill, 
-                        для монохромных - через CSS (fill: currentColor; или fill: #цвет;) -->
                     </svg>
                     Войти через Google
                 </a>
