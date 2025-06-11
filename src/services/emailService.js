@@ -16,7 +16,7 @@ async function initializeEmailService() {
         }
 
         // Create transporter with timeout and connection settings
-        transporter = nodemailer.createTransporter({
+        transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: parseInt(process.env.SMTP_PORT) || 587,
             secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -119,10 +119,33 @@ async function sendPasswordResetEmail(email, token) {
     return await sendEmail(email, subject, text, html);
 }
 
+// Send support email
+async function sendSupportEmail(userEmail, subject, message) {
+    const mailOptions = {
+        from: `"${process.env.APP_NAME || 'Hockey GM Support'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`, // Sender
+        to: process.env.SUPPORT_EMAIL_TO || process.env.SMTP_USER, // Recipient (your support email)
+        replyTo: userEmail, // So replies go directly to the user
+        subject: `[Support Ticket] ${subject} (from ${userEmail})`, // Email subject
+        text: `Message from user: ${userEmail}\n\nSubject: ${subject}\n\nMessage:\n${message}`, // plain text body
+        html: `
+            <p><strong>Message from user:</strong> ${userEmail}</p>
+            <p><strong>Subject:</strong> ${subject}</p>
+            <hr>
+            <p><strong>Message:</strong></p>
+            <p>${message.replace(/\n/g, '<br>')}</p>
+            <hr>
+            <p><em>This email was sent from the support form in ${process.env.APP_NAME || 'Hockey GM'}.</em></p>
+        `, // html body
+    };
+
+    return await sendEmail(mailOptions.to, mailOptions.subject, mailOptions.text, mailOptions.html);
+}
+
 module.exports = {
     initializeEmailService,
     sendEmail,
     sendVerificationEmail,
     sendPasswordResetEmail,
+    sendSupportEmail,
     isEmailEnabled: () => emailEnabled
 };
