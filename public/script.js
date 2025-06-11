@@ -40,12 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(formSeparator) formSeparator.style.display = 'block';
     }
 
-    function showDatabaseNotConfiguredMessage() {
-        const message = 'База данных не настроена. Нажмите кнопку "Connect to Supabase" в правом верхнем углу для подключения к базе данных.';
-        updateMessage(regMessage, message, 'warning');
-        updateMessage(loginMessage, message, 'warning');
-    }
-
     // Проверка токена при загрузке страницы
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -77,11 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateMessage(regMessage, 'Успешная регистрация! Теперь вы можете войти.', 'success');
                     registerForm.reset();
                 } else {
-                    if (data.code === 'DATABASE_NOT_CONFIGURED') {
-                        showDatabaseNotConfiguredMessage();
-                    } else {
-                        updateMessage(regMessage, `Ошибка: ${data.message}`, 'error');
-                    }
+                    updateMessage(regMessage, `Ошибка: ${data.message}`, 'error');
                 }
             } catch (error) {
                 console.error('Registration error:', error);
@@ -116,11 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     handleSuccessfulLogin();
                 } else {
-                    if (data.code === 'DATABASE_NOT_CONFIGURED') {
-                        showDatabaseNotConfiguredMessage();
-                    } else {
-                        updateMessage(loginMessage, `Ошибка: ${data.message}`, 'error');
-                    }
+                    updateMessage(loginMessage, `Ошибка: ${data.message}`, 'error');
                 }
             } catch (error) {
                 console.error('Login error:', error);

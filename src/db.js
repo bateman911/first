@@ -2,62 +2,141 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Check if we're in a development environment without database
-const isDevelopment = !process.env.DATABASE_URL && !process.env.DB_HOST;
+// Mock database for development when no real database is available
+const createMockDb = () => {
+  console.log('⚠️  Using mock database - functionality will be limited');
+  
+  // In-memory storage
+  const storage = {
+    users: [],
+    cards: [],
+    user_cards: [],
+    team_rosters: [],
+    user_big_impact_cards: [],
+    big_impact_card_templates: [],
+    user_boosts_inventory: [],
+    user_card_applied_skills: [],
+    player_skill_templates: [],
+    user_contracts_inventory: [],
+    contract_item_templates: []
+  };
+  
+  // Last ID tracking for auto-increment
+  const lastIds = {
+    users: 0,
+    cards: 0,
+    user_cards: 0,
+    team_rosters: 0,
+    user_big_impact_cards: 0,
+    big_impact_card_templates: 0,
+    user_boosts_inventory: 0,
+    user_card_applied_skills: 0,
+    player_skill_templates: 0,
+    user_contracts_inventory: 0,
+    contract_item_templates: 0
+  };
+  
+  return {
+    query: async (text, params) => {
+      console.log('Mock DB Query:', { text, params });
+      
+      // Handle basic queries
+      if (text.includes('SELECT * FROM users WHERE email =')) {
+        const email = params[0];
+        const user = storage.users.find(u => u.email === email);
+        return { rows: user ? [user] : [] };
+      }
+      
+      if (text.includes('INSERT INTO users')) {
+        const [username, email, password_hash] = params;
+        const id = ++lastIds.users;
+        const newUser = { 
+          id, 
+          username, 
+          email, 
+          password_hash,
+          created_at: new Date().toISOString(),
+          current_energy: 7,
+          max_energy: 7,
+          level: 1,
+          current_xp: 0,
+          xp_to_next_level: 100,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          gold: 0,
+          bucks: 0,
+          team_name_changes_count: 0
+        };
+        storage.users.push(newUser);
+        return { rows: [{ id, username, email }] };
+      }
+      
+      // Default response for unhandled queries
+      return { rows: [], rowCount: 0 };
+    },
+    connect: async () => {
+      return {
+        query: async (text, params) => {
+          console.log('Mock DB Client Query:', { text, params });
+          return { rows: [], rowCount: 0 };
+        },
+        release: () => {},
+        on: () => {}
+      };
+    },
+    on: () => {}
+  };
+};
 
+// Determine if we should use a real database or mock
 let pool;
 
-if (isDevelopment) {
-    console.log('⚠️  Development mode: Database not configured');
-    console.log('📝 To connect to a database:');
-    console.log('   1. Click "Connect to Supabase" button in the top right');
-    console.log('   2. Set up your Supabase project');
-    console.log('   3. The environment variables will be automatically configured');
-    
-    // Create a mock pool for development
-    pool = {
-        query: async () => {
-            throw new Error('Database not configured. Please connect to Supabase first.');
-        },
-        connect: async () => {
-            throw new Error('Database not configured. Please connect to Supabase first.');
-        },
-        on: () => {},
-        end: async () => {}
-    };
-} else {
-    // Use DATABASE_URL if available (Supabase format), otherwise use individual variables
-    const connectionConfig = process.env.DATABASE_URL ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    } : {
+try {
+  // Check if we have database configuration
+  const dbUrl = process.env.DATABASE_URL;
+  const dbHost = process.env.DB_HOST;
+  
+  if (!dbUrl && !dbHost) {
+    console.log('⚠️  No database configuration found - using mock database');
+    pool = createMockDb();
+  } else {
+    // Configure real database connection
+    const connectionConfig = dbUrl ? 
+      { connectionString: dbUrl } : 
+      {
         user: process.env.DB_USER,
         host: process.env.DB_HOST,
         database: process.env.DB_DATABASE,
         password: process.env.DB_PASSWORD,
-        port: parseInt(process.env.DB_PORT || "5432", 10),
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    };
-
+        port: parseInt(process.env.DB_PORT || "5432", 10)
+      };
+    
     pool = new Pool(connectionConfig);
-
-    pool.on('connect', (client) => {
-        console.log('✅ New database connection established');
+    
+    pool.on('connect', () => {
+      console.log('✅ Connected to PostgreSQL database');
     });
-
-    pool.on('error', (err, client) => {
-        console.error('❌ Unexpected error on idle database client', err);
+    
+    pool.on('error', (err) => {
+      console.error('❌ Unexpected error on idle PostgreSQL client', err);
     });
-
+    
     // Test connection
     pool.query('SELECT NOW()', (err, res) => {
-        if (err) {
-            console.error('❌ Database connection test failed:', err.message);
-            console.log('💡 Make sure your database is running and connection details are correct');
-        } else {
-            console.log('✅ Database connected successfully! Server time:', res.rows[0].now);
-        }
+      if (err) {
+        console.error('❌ Database connection test failed:', err.message);
+        console.log('⚠️  Falling back to mock database');
+        pool = createMockDb();
+      } else {
+        console.log('✅ Database connection test successful:', res.rows[0].now);
+      }
     });
+  }
+} catch (error) {
+  console.error('❌ Error initializing database connection:', error);
+  console.log('⚠️  Falling back to mock database');
+  pool = createMockDb();
 }
 
 module.exports = pool;

@@ -25,6 +25,53 @@
             text-align: center;
         }
 
+        .database-notice {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .database-notice h3 {
+            color: #1976d2;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .database-notice p {
+            color: #424242;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .database-setup {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .database-setup h3 {
+            color: #856404;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .database-setup pre {
+            background-color: #f8f9fa;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            color: #333;
+        }
+
         .auth-form-wrapper h2, .user-info-panel h2 {
             color: #1a2b40;
             margin-bottom: 25px;
@@ -199,43 +246,6 @@
         .btn-google {
             /* Специфичные стили для кнопки Google, если нужно */
         }
-
-        .database-notice {
-            background-color: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .database-notice h3 {
-            color: #1976d2;
-            margin: 0 0 10px 0;
-            font-size: 1.1em;
-        }
-
-        .database-notice p {
-            color: #424242;
-            margin: 5px 0;
-            font-size: 0.9em;
-        }
-
-        .database-notice .btn-connect {
-            background-color: #2196f3;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-
-        .database-notice .btn-connect:hover {
-            background-color: #1976d2;
-        }
     </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -250,8 +260,19 @@
     <div class="auth-container">
         <div class="database-notice">
             <h3>🚀 Добро пожаловать в Big Win Hockey!</h3>
-            <p>Для полной функциональности приложения необходимо подключить базу данных.</p>
-            <p>Нажмите кнопку <strong>"Connect to Supabase"</strong> в правом верхнем углу.</p>
+            <p>Приложение работает в режиме демонстрации с имитацией базы данных.</p>
+            <p>Для полной функциональности настройте подключение к PostgreSQL.</p>
+        </div>
+
+        <div class="database-setup">
+            <h3>📝 Инструкция по настройке базы данных:</h3>
+            <ol>
+                <li>Создайте базу данных PostgreSQL</li>
+                <li>Настройте файл .env с вашими параметрами подключения</li>
+                <li>Выполните SQL-миграции из файла supabase/migrations</li>
+            </ol>
+            <p>Пример настроек в .env:</p>
+            <pre>DATABASE_URL=postgres://username:password@host:5432/database</pre>
         </div>
 
         <div class="auth-form-wrapper" id="registerSection">
