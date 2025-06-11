@@ -89,7 +89,7 @@ const createMockDb = () => {
   };
 };
 
-// Determine if we should use a real database or mock
+// Determine if we should use a real database or mock - synchronously
 let pool;
 
 try {
@@ -112,26 +112,24 @@ try {
         port: parseInt(process.env.DB_PORT || "5432", 10)
       };
     
-    pool = new Pool(connectionConfig);
-    
-    pool.on('connect', () => {
-      console.log('✅ Connected to PostgreSQL database');
-    });
-    
-    pool.on('error', (err) => {
-      console.error('❌ Unexpected error on idle PostgreSQL client', err);
-    });
-    
-    // Test connection
-    pool.query('SELECT NOW()', (err, res) => {
-      if (err) {
-        console.error('❌ Database connection test failed:', err.message);
-        console.log('⚠️  Falling back to mock database');
-        pool = createMockDb();
-      } else {
-        console.log('✅ Database connection test successful:', res.rows[0].now);
-      }
-    });
+    try {
+      pool = new Pool(connectionConfig);
+      
+      pool.on('connect', () => {
+        console.log('✅ Connected to PostgreSQL database');
+      });
+      
+      pool.on('error', (err) => {
+        console.error('❌ Unexpected error on idle PostgreSQL client', err);
+        // Don't reassign pool here as it would cause race conditions
+      });
+      
+      console.log('✅ PostgreSQL pool initialized');
+    } catch (poolError) {
+      console.error('❌ Error creating PostgreSQL pool:', poolError.message);
+      console.log('⚠️  Falling back to mock database');
+      pool = createMockDb();
+    }
   }
 } catch (error) {
   console.error('❌ Error initializing database connection:', error);
