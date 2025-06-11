@@ -274,6 +274,14 @@ const createMockDb = () => {
           return { rows: [{ id, username, email }] };
         }
         
+        // Handle card ownership check
+        if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
+          const userCardId = params[0];
+          const userId = params[1];
+          const userCard = storage.user_cards.find(uc => uc.id === parseInt(userCardId) && uc.user_id === parseInt(userId));
+          return { rows: userCard ? [{ id: userCard.id }] : [] };
+        }
+        
         // Handle card queries
         if (text.includes('SELECT COUNT(*) FROM user_cards WHERE user_id =')) {
           const userId = params[0];
