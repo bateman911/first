@@ -22,13 +22,22 @@ app.use(express.json());
 // Middleware для парсинга URL-encoded тел запросов
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
+// Настраиваем статические файлы - важно разместить перед маршрутами
+app.use(express.static('public')); // Папка 'public' для HTML, CSS, JS клиента
+
+// Подключение маршрутов
+app.use('/api/auth', authRoutes);
+app.use('/api/cards', cardRoutes);
 app.use('/api/dashboard', dashboardRoutes); 
 app.use('/api/team', teamRoutes);
 app.use('/api/inventory', inventoryRoutes);
+
+// Настройка Google OAuth стратегии
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL, // Должен совпадать с тем, что в Google Console
+    clientID: process.env.GOOGLE_CLIENT_ID || '687497616750-05suqgo1nuv2hftc7chj28cs9sj4f063.apps.googleusercontent.com',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback', // Должен совпадать с тем, что в Google Console
     scope: ['profile', 'email'] // Запрашиваемые данные
 },
 async (accessToken, refreshToken, profile, done) => {
@@ -92,7 +101,7 @@ async (accessToken, refreshToken, profile, done) => {
             username: user.username
             // Можно добавить email или другие данные в токен, если нужно
         };
-        const appToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const appToken = jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '1h' });
 
         // Передаем наш токен и профиль Google в callback для дальнейшей обработки (например, редиректа с токеном)
         return done(null, { appToken, profile });
@@ -101,30 +110,20 @@ async (accessToken, refreshToken, profile, done) => {
     }
 }));
 
-// Passport serialize/deserialize (если используете сессии, для API не всегда нужно, но стратегия может требовать)
-// passport.serializeUser((user, done) => {
-//     done(null, user.id); // Сериализуем ID пользователя для сессии
-// });
-
-// passport.deserializeUser(async (id, done) => {
-//     try {
-//         const userResult = await db.query('SELECT * FROM users WHERE id = $1', [id]);
-//         done(null, userResult.rows[0]); // Десериализуем пользователя из БД
-//     } catch (err) {
-//         done(err, null);
-//     }
-// });
-
-// Middleware для раздачи статических файлов (frontend)
-app.use(express.static('public')); // Папка 'public' для HTML, CSS, JS клиента
-
-// Подключение маршрутов аутентификации
-app.use('/api/auth', authRoutes);
-app.use('/api/cards', cardRoutes);
-
 // Простой корневой маршрут для проверки
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html'); // Отдаем главный HTML файл
+    res.sendFile(__dirname + '/../public/index.html'); // Отдаем главный HTML файл
+});
+
+// Обработка 404 - должна быть после всех маршрутов
+app.use((req, res) => {
+    res.status(404).send('Страница не найдена');
+});
+
+// Обработка ошибок
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Что-то пошло не так!');
 });
 
 app.listen(PORT, () => {

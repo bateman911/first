@@ -1,4 +1,3 @@
-// src/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
@@ -6,6 +5,7 @@ const passport = require('passport'); // Подключаем паспорт
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+
 // Роут для начала аутентификации через Google
 router.get('/google', passport.authenticate('google', {
     scope: ['profile', 'email'],
