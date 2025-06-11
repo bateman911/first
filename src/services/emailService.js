@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 // Check if we're in a development environment without SMTP
-const isDevelopmentWithoutSMTP = process.env.NODE_ENV === 'development' && !process.env.SMTP_AVAILABLE;
+const isDevelopmentWithoutSMTP = process.env.NODE_ENV === 'development' && process.env.SMTP_AVAILABLE !== 'true';
 
 // Create a transporter with improved configuration
 let transporter = null;
@@ -11,26 +11,32 @@ let transporter = null;
 // Initialize transporter only when needed, not on module load
 function getTransporter() {
   if (!transporter && !isDevelopmentWithoutSMTP) {
-    transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: (process.env.SMTP_SECURE || 'false') === 'true', // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || '',
-      },
-      // Add connection timeout settings
-      connectionTimeout: 5000, // 5 seconds
-      greetingTimeout: 5000,   // 5 seconds
-      socketTimeout: 5000,     // 5 seconds
-      // Disable TLS verification for development
-      tls: {
-        rejectUnauthorized: false
-      },
-      // Disable verification on startup
-      disableFileAccess: true,
-      disableUrlAccess: true,
-    });
+    try {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: (process.env.SMTP_SECURE || 'false') === 'true', // true for 465, false for other ports
+        auth: {
+          user: process.env.SMTP_USER || '',
+          pass: process.env.SMTP_PASS || '',
+        },
+        // Add connection timeout settings
+        connectionTimeout: 5000, // 5 seconds
+        greetingTimeout: 5000,   // 5 seconds
+        socketTimeout: 5000,     // 5 seconds
+        // Disable TLS verification for development
+        tls: {
+          rejectUnauthorized: false
+        },
+        // Disable verification on startup
+        disableFileAccess: true,
+        disableUrlAccess: true,
+      });
+      console.log("SMTP транспортер создан");
+    } catch (error) {
+      console.error("Ошибка при создании SMTP транспортера:", error.message);
+      return null;
+    }
   }
   return transporter;
 }
