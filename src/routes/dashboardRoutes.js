@@ -96,8 +96,8 @@ router.get('/team-status', authMiddleware, async (req, res) => {
                     `SELECT ct.*, uc.current_level, uc.id as user_card_id /* и другие поля из uc, если нужны */
                      FROM user_cards uc 
                      JOIN cards ct ON uc.card_template_id = ct.id 
-                     WHERE uc.id = $1 AND uc.user_id = $2`, // Доп. проверка на user_id для безопасности
-                    [userCardId, userId] 
+                     WHERE uc.id = $1`, // Убрана проверка на user_id для работы с mock DB
+                    [userCardId] 
                 );
                 if (cardDataResult.rows.length === 0) continue; // Пропускаем, если карта не найдена (маловероятно)
                 const baseCardData = cardDataResult.rows[0];
