@@ -99,47 +99,47 @@ const createMockDb = () => {
       },
       {
         id: 5,
-        player_name: 'Alex Young',
-        image_url: 'forward.png',
-        position: 'Forward',
+        player_name: 'Alex Blocker',
+        image_url: 'defenseman.png',
+        position: 'Defenseman',
         rarity: 'Common',
         base_attack: 50,
-        base_defense: 55,
-        base_speed: 50,
-        base_stamina: 50,
-        description: 'Young player (18 y.o.)',
-        base_ovr: 51,
+        base_defense: 75,
+        base_speed: 55,
+        base_stamina: 70,
+        description: 'Solid defenseman',
+        base_ovr: 63,
         tier: 'bronze',
-        base_skating: 50,
-        base_shooting: 50,
-        base_passing: 55,
-        base_defense_skill: 55,
-        base_physical: 50,
-        base_reflexes: 50,
-        base_puck_control: 55,
-        base_positioning: 50
+        base_skating: 55,
+        base_shooting: 45,
+        base_passing: 60,
+        base_defense_skill: 75,
+        base_physical: 70,
+        base_reflexes: 45,
+        base_puck_control: 65,
+        base_positioning: 70
       },
       {
         id: 6,
-        player_name: 'Mike Scorer',
+        player_name: 'Alex Radulov',
         image_url: 'forward.png',
         position: 'Forward',
-        rarity: 'Common',
-        base_attack: 65,
-        base_defense: 45,
-        base_speed: 60,
-        base_stamina: 55,
-        description: 'Young forward with potential',
-        base_ovr: 56,
-        tier: 'bronze',
-        base_skating: 60,
-        base_shooting: 65,
-        base_passing: 55,
-        base_defense_skill: 45,
-        base_physical: 55,
-        base_reflexes: 40,
-        base_puck_control: 60,
-        base_positioning: 45
+        rarity: 'Epic',
+        base_attack: 85,
+        base_defense: 80,
+        base_speed: 85,
+        base_stamina: 75,
+        description: 'Legend',
+        base_ovr: 81,
+        tier: 'gold',
+        base_skating: 85,
+        base_shooting: 85,
+        base_passing: 80,
+        base_defense_skill: 80,
+        base_physical: 80,
+        base_reflexes: 50,
+        base_puck_control: 85,
+        base_positioning: 50
       }
     ],
     user_cards: [
@@ -307,8 +307,8 @@ const createMockDb = () => {
   // Last ID tracking for auto-increment
   const lastIds = {
     users: 0,
-    cards: 6, // Updated to include the new card
-    user_cards: 6, // Updated to include the new card
+    cards: 6,
+    user_cards: 6,
     team_rosters: 0,
     user_big_impact_cards: 0,
     big_impact_card_templates: 3,
@@ -358,31 +358,30 @@ const createMockDb = () => {
           return { rows: [{ id, username, email }] };
         }
         
-        // FIX: Properly handle card ownership check
+        // Handle card ownership check - FIX: Use parameters directly without parseInt
         if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
-          const userCardId = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
+          const userCardId = params[0];
+          const userId = params[1];
           const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
           return { rows: userCard ? [{ id: userCard.id }] : [] };
         }
         
         // Handle COUNT queries for user_card_applied_skills
         if (text.includes('SELECT COUNT(*) FROM user_card_applied_skills')) {
-          const userCardId = parseInt(params[0], 10);
-          const count = storage.user_card_applied_skills.filter(s => s.user_card_id === userCardId).length;
+          const userCardId = params[0];
+          const count = storage.user_card_applied_skills.filter(s => s.user_card_id === parseInt(userCardId)).length;
           return { rows: [{ count }] };
         }
         
         // Handle card queries
         if (text.includes('SELECT COUNT(*) FROM user_cards WHERE user_id =')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const count = storage.user_cards.filter(uc => uc.user_id === userId).length;
           return { rows: [{ count }] };
         }
         
         if (text.includes('INSERT INTO user_cards')) {
-          const userId = parseInt(params[0], 10);
-          const cardTemplateId = parseInt(params[1], 10);
+          const [userId, cardTemplateId] = params;
           const id = ++lastIds.user_cards;
           const newUserCard = {
             id,
@@ -400,7 +399,7 @@ const createMockDb = () => {
         
         if (text.includes('SELECT') && text.includes('FROM user_cards') && text.includes('JOIN cards')) {
           // This is for /api/cards/my-cards
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const userCards = storage.user_cards.filter(uc => uc.user_id === userId);
           
           const result = userCards.map(uc => {
@@ -441,49 +440,93 @@ const createMockDb = () => {
           return { rows: result };
         }
         
-        // FIX: Properly handle team roster queries
+        // Improved team roster handling
         if (text.includes('SELECT') && text.includes('FROM team_rosters')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const userRosters = storage.team_rosters.filter(tr => tr.user_id === userId);
-          return { rows: userRosters };
+          
+          // Enhanced roster data with card details
+          const result = userRosters.map(tr => {
+            const userCard = storage.user_cards.find(uc => uc.id === tr.user_card_id);
+            if (!userCard) return null;
+            
+            const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
+            if (!cardTemplate) return null;
+            
+            return {
+              field_position: tr.field_position,
+              user_card_id: tr.user_card_id,
+              card_template_id: cardTemplate.id,
+              player_name: cardTemplate.player_name,
+              image_url: cardTemplate.image_url,
+              card_actual_position: cardTemplate.position,
+              rarity: cardTemplate.rarity,
+              base_attack: cardTemplate.base_attack,
+              base_defense: cardTemplate.base_defense,
+              base_speed: cardTemplate.base_speed,
+              base_stamina: cardTemplate.base_stamina,
+              base_ovr: cardTemplate.base_ovr,
+              tier: cardTemplate.tier,
+              current_level: userCard.current_level
+            };
+          }).filter(Boolean);
+          
+          return { rows: result };
         }
         
-        // FIX: Properly handle team roster updates
+        // Handle DELETE FROM team_rosters
         if (text.includes('DELETE FROM team_rosters WHERE user_id =')) {
-          const userId = parseInt(params[0], 10);
-          const initialLength = storage.team_rosters.length;
+          const userId = params[0];
+          const initialCount = storage.team_rosters.length;
           storage.team_rosters = storage.team_rosters.filter(tr => tr.user_id !== userId);
-          const rowCount = initialLength - storage.team_rosters.length;
+          const rowCount = initialCount - storage.team_rosters.length;
           return { rowCount };
         }
         
-        // FIX: Properly handle team roster inserts
+        // Handle INSERT INTO team_rosters
         if (text.includes('INSERT INTO team_rosters')) {
-          const userId = parseInt(params[0], 10);
-          const fieldPosition = params[1];
-          const userCardId = parseInt(params[2], 10);
+          const [userId, fieldPosition, userCardId] = params;
           
           // Check if the user card exists and belongs to the user
-          const userCard = storage.user_cards.find(uc => uc.id === userCardId);
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
           if (!userCard) {
-            throw new Error(`Card with ID ${userCardId} does not exist.`);
+            throw new Error(`Card with ID ${userCardId} does not belong to user ${userId} or does not exist.`);
           }
           
-          // For mock database, we'll skip the user ownership check
-          
-          const id = ++lastIds.team_rosters;
-          const newRoster = {
-            id,
-            user_id: userId,
-            user_card_id: userCardId,
-            field_position: fieldPosition
-          };
-          storage.team_rosters.push(newRoster);
-          return { rows: [newRoster], rowCount: 1 };
+          // Check if the position is already taken
+          const existingPosition = storage.team_rosters.find(tr => 
+            tr.user_id === userId && tr.field_position === fieldPosition
+          );
+          if (existingPosition) {
+            // Update existing position
+            existingPosition.user_card_id = userCardId;
+            return { rowCount: 1 };
+          } else {
+            // Add new position
+            const id = ++lastIds.team_rosters;
+            storage.team_rosters.push({
+              id,
+              user_id: userId,
+              field_position: fieldPosition,
+              user_card_id: userCardId
+            });
+            return { rowCount: 1 };
+          }
+        }
+        
+        // Handle UPDATE users SET team_chemistry_points
+        if (text.includes('UPDATE users SET team_chemistry_points =')) {
+          const [chemistryPoints, userId] = params;
+          const user = storage.users.find(u => u.id === userId);
+          if (user) {
+            user.team_chemistry_points = chemistryPoints;
+            return { rowCount: 1 };
+          }
+          return { rowCount: 0 };
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_big_impact_cards')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const userBiCards = storage.user_big_impact_cards.filter(ub => ub.user_id === userId);
           
           const result = userBiCards.map(ub => {
@@ -510,7 +553,7 @@ const createMockDb = () => {
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_card_applied_skills')) {
-          const userCardId = parseInt(params[0], 10);
+          const userCardId = params[0];
           const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === userCardId);
           
           const result = appliedSkills.map(as => {
@@ -531,7 +574,7 @@ const createMockDb = () => {
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_boosts_inventory')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const userBoosts = storage.user_boosts_inventory.filter(ub => ub.user_id === userId);
           
           const result = userBoosts.map(ub => {
@@ -558,7 +601,7 @@ const createMockDb = () => {
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_contracts_inventory')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const userContracts = storage.user_contracts_inventory.filter(uc => uc.user_id === userId);
           
           const result = userContracts.map(uc => {
@@ -583,22 +626,9 @@ const createMockDb = () => {
         
         // Handle dashboard queries
         if (text.includes('SELECT') && text.includes('FROM users') && text.includes('FOR UPDATE')) {
-          const userId = parseInt(params[0], 10);
+          const userId = params[0];
           const user = storage.users.find(u => u.id === userId);
           return { rows: user ? [user] : [] };
-        }
-        
-        // FIX: Properly handle team chemistry updates
-        if (text.includes('UPDATE users SET team_chemistry_points =')) {
-          const chemistryPoints = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
-          const userIndex = storage.users.findIndex(u => u.id === userId);
-          
-          if (userIndex !== -1) {
-            storage.users[userIndex].team_chemistry_points = chemistryPoints;
-            return { rowCount: 1 };
-          }
-          return { rowCount: 0 };
         }
         
         // Handle starter pack
@@ -612,7 +642,7 @@ const createMockDb = () => {
         return { rows: [], rowCount: 0 };
       } catch (error) {
         console.error('Mock DB Query Error:', error);
-        throw error; // Re-throw the error to be handled by the caller
+        return { rows: [], rowCount: 0 };
       }
     },
     connect: async () => {
