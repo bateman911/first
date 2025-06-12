@@ -42,7 +42,7 @@ router.get('/player-cards/:userCardId/skills', authMiddleware, async (req, res) 
 
     try {
         // 1. Проверка, что запрашиваемая карта принадлежит текущему пользователю
-        // Fix: Skip card ownership check for mock database
+        // Skip card ownership check for mock database
         const isMock = await pool.isMock;
         if (!isMock) {
             const cardOwnerCheck = await pool.query(
@@ -128,7 +128,7 @@ router.post('/player-cards/:userCardId/apply-boost', authMiddleware, async (req,
         console.log(`[UserID: ${currentUserId}] ApplyBoost: Начало транзакции для карты ${userCardId}`);
 
         // 2. Проверить, что user_card_id принадлежит currentUserId
-        // Fix: Skip card ownership check for mock database
+        // Skip card ownership check for mock database
         const isMock = await pool.isMock;
         let cardNativePosition;
         
@@ -217,7 +217,7 @@ router.post('/player-cards/:userCardId/apply-boost', authMiddleware, async (req,
                 [userCardId]
             );
             
-            // Fix: Handle undefined count in mock database
+            // Handle undefined count in mock database
             const existingSkillsCount = existingSkillsCountResult.rows[0] && existingSkillsCountResult.rows[0].count ? 
                 parseInt(existingSkillsCountResult.rows[0].count, 10) : 0;
 
@@ -299,7 +299,7 @@ router.post('/player-cards/:userCardId/add-skill', authMiddleware, async (req, r
         console.log(`[UserID: ${currentUserId}] AddSkill: Начало транзакции для карты ${userCardId}, скилл ${skillTemplateIdToAdd}`);
 
         // 2. Проверка, что карта принадлежит пользователю и получение ее "родной" позиции
-        // Fix: Skip card ownership check for mock database
+        // Skip card ownership check for mock database
         const isMock = await pool.isMock;
         let cardNativePosition;
         
@@ -333,7 +333,7 @@ router.post('/player-cards/:userCardId/add-skill', authMiddleware, async (req, r
             [userCardId]
         );
         
-        // Fix: Handle undefined count in mock database
+        // Handle undefined count in mock database
         const existingSkillsCount = existingSkillsCountResult.rows[0] && existingSkillsCountResult.rows[0].count ? 
             parseInt(existingSkillsCountResult.rows[0].count, 10) : 0;
             
@@ -453,7 +453,7 @@ router.post('/player-cards/:userCardId/apply-contract', authMiddleware, async (r
         console.log(`[UserID: ${currentUserId}] ApplyContract: Начало транзакции для карты ${userCardId} с контрактом инв.ID ${userContractInventoryId}`);
 
         // 2. Проверить, что user_card_id принадлежит currentUserId и получить ее renewals_left
-        // Fix: Skip card ownership check for mock database
+        // Skip card ownership check for mock database
         const isMock = await pool.isMock;
         let playerCard;
         

@@ -110,7 +110,7 @@ router.post('/roster', authMiddleware, async (req, res) => {
                 }
                 assignedUserCardIds.add(userCardId);
 
-                // Fix: Skip card ownership check for mock database
+                // Skip card ownership check for mock database
                 const isMock = await pool.isMock;
                 if (!isMock) {
                     const cardOwnerCheck = await client.query('SELECT id FROM user_cards WHERE id = $1 AND user_id = $2', [userCardId, userId]);
@@ -154,7 +154,7 @@ router.post('/roster', authMiddleware, async (req, res) => {
             );
             
             const nativePositionsMap = new Map();
-            cardPositionsResult.rows.forEach(row => nativePositionsMap.set(row.user_card_id, row.native_card_position));
+            cardPositionsResult.rows.forEach(row => nativePositionsMap.set(parseInt(row.user_card_id, 10), row.native_card_position));
 
             cardsInNewRosterForChemistry.forEach(rosterEntry => {
                 const nativePosition = nativePositionsMap.get(rosterEntry.user_card_id);
