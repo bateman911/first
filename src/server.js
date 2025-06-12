@@ -1,5 +1,6 @@
 // src/server.js
 const express = require('express');
+const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const cardRoutes = require('./routes/cardRoutes');
 const passport = require('passport');
@@ -157,14 +158,27 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/inventory', inventoryRoutes);
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
 // Middleware для раздачи статических файлов (frontend) - AFTER all API routes
 app.use(express.static('dist')); // Папка 'dist' для HTML, CSS, JS клиента
 
-// Простой корневой маршрут для проверки
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/dist/index.html'); // Отдаем главный HTML файл
+// Catch-all route for SPA - должен быть ПОСЛЕ всех API routes
+app.get('*', (req, res) => {
+    // Если запрос не к API, отдаем index.html для SPA routing
+    if (!req.url.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, '../dist/index.html'));
+    } else {
+        res.status(404).json({ message: 'API endpoint not found' });
+    }
 });
 
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на http://localhost:${PORT}`);
+    console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
+    console.log(`📁 Статические файлы обслуживаются из папки: ${path.join(__dirname, '../dist')}`);
+    console.log(`🔗 API маршруты доступны по адресу: http://localhost:${PORT}/api/`);
 });
