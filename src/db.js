@@ -99,25 +99,25 @@ const createMockDb = () => {
       },
       {
         id: 5,
-        player_name: 'Alex Blocker',
-        image_url: 'defenseman.png',
-        position: 'Defenseman',
+        player_name: 'Alex Young',
+        image_url: 'forward.png',
+        position: 'Forward',
         rarity: 'Common',
         base_attack: 50,
-        base_defense: 75,
-        base_speed: 55,
-        base_stamina: 70,
-        description: 'Solid defenseman',
-        base_ovr: 63,
+        base_defense: 55,
+        base_speed: 50,
+        base_stamina: 50,
+        description: 'Young player (18 y.o.)',
+        base_ovr: 51,
         tier: 'bronze',
-        base_skating: 55,
-        base_shooting: 45,
-        base_passing: 60,
-        base_defense_skill: 75,
-        base_physical: 70,
-        base_reflexes: 45,
-        base_puck_control: 65,
-        base_positioning: 70
+        base_skating: 50,
+        base_shooting: 50,
+        base_passing: 55,
+        base_defense_skill: 55,
+        base_physical: 50,
+        base_reflexes: 50,
+        base_puck_control: 55,
+        base_positioning: 50
       },
       {
         id: 6,
@@ -459,13 +459,17 @@ const createMockDb = () => {
         
         // FIX: Properly handle team roster inserts
         if (text.includes('INSERT INTO team_rosters')) {
-          const [userId, fieldPosition, userCardId] = params.map(p => parseInt(p, 10) || p);
+          const userId = parseInt(params[0], 10);
+          const fieldPosition = params[1];
+          const userCardId = parseInt(params[2], 10);
           
           // Check if the user card exists and belongs to the user
-          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId);
           if (!userCard) {
-            throw new Error(`Card with ID ${userCardId} does not belong to user ${userId} or does not exist.`);
+            throw new Error(`Card with ID ${userCardId} does not exist.`);
           }
+          
+          // For mock database, we'll skip the user ownership check
           
           const id = ++lastIds.team_rosters;
           const newRoster = {

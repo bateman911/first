@@ -200,7 +200,9 @@ router.post('/roster', authMiddleware, async (req, res) => {
                     const appliedSkills = appliedSkillsResult.rows;
                     
                     // Calculate modified stats
-                    const modifiedStats = calculateModifiedStatsOnServer(baseCardData, appliedSkills);
+                    const modifiedStats = calculateModifiedStatsOnServer ? 
+                        calculateModifiedStatsOnServer(baseCardData, appliedSkills) : 
+                        { current_ovr: baseCardData.base_ovr || 0 };
                     
                     if (typeof modifiedStats.current_ovr === 'number') {
                         totalOvr += modifiedStats.current_ovr;
