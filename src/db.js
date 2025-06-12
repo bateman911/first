@@ -118,6 +118,28 @@ const createMockDb = () => {
         base_reflexes: 45,
         base_puck_control: 65,
         base_positioning: 70
+      },
+      {
+        id: 6,
+        player_name: 'Mike Scorer',
+        image_url: 'forward.png',
+        position: 'Forward',
+        rarity: 'Common',
+        base_attack: 65,
+        base_defense: 45,
+        base_speed: 60,
+        base_stamina: 55,
+        description: 'Young forward with potential',
+        base_ovr: 56,
+        tier: 'bronze',
+        base_skating: 60,
+        base_shooting: 65,
+        base_passing: 55,
+        base_defense_skill: 45,
+        base_physical: 55,
+        base_reflexes: 40,
+        base_puck_control: 60,
+        base_positioning: 45
       }
     ],
     user_cards: [
@@ -166,6 +188,16 @@ const createMockDb = () => {
         id: 5,
         user_id: 1,
         card_template_id: 5,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 6,
+        user_id: 1,
+        card_template_id: 6,
         current_level: 1,
         experience_points: 0,
         acquired_at: new Date().toISOString(),
@@ -275,8 +307,8 @@ const createMockDb = () => {
   // Last ID tracking for auto-increment
   const lastIds = {
     users: 0,
-    cards: 5,
-    user_cards: 5,
+    cards: 6, // Updated to include the new card
+    user_cards: 6, // Updated to include the new card
     team_rosters: 0,
     user_big_impact_cards: 0,
     big_impact_card_templates: 3,
@@ -326,16 +358,10 @@ const createMockDb = () => {
           return { rows: [{ id, username, email }] };
         }
         
-        // Handle card ownership check - FIX: Use parameters directly without parseInt
+        // FIX: Properly handle card ownership check
         if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
           const userCardId = parseInt(params[0], 10);
           const userId = parseInt(params[1], 10);
-          
-          // For mock database, always return success for user 1
-          if (userId === 1) {
-            return { rows: [{ id: userCardId }] };
-          }
-          
           const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
           return { rows: userCard ? [{ id: userCard.id }] : [] };
         }
@@ -355,7 +381,8 @@ const createMockDb = () => {
         }
         
         if (text.includes('INSERT INTO user_cards')) {
-          const [userId, cardTemplateId] = params.map(p => parseInt(p, 10));
+          const userId = parseInt(params[0], 10);
+          const cardTemplateId = parseInt(params[1], 10);
           const id = ++lastIds.user_cards;
           const newUserCard = {
             id,
@@ -414,37 +441,41 @@ const createMockDb = () => {
           return { rows: result };
         }
         
+        // FIX: Properly handle team roster queries
         if (text.includes('SELECT') && text.includes('FROM team_rosters')) {
           const userId = parseInt(params[0], 10);
           const userRosters = storage.team_rosters.filter(tr => tr.user_id === userId);
+          return { rows: userRosters };
+        }
+        
+        // FIX: Properly handle team roster updates
+        if (text.includes('DELETE FROM team_rosters WHERE user_id =')) {
+          const userId = parseInt(params[0], 10);
+          const initialLength = storage.team_rosters.length;
+          storage.team_rosters = storage.team_rosters.filter(tr => tr.user_id !== userId);
+          const rowCount = initialLength - storage.team_rosters.length;
+          return { rowCount };
+        }
+        
+        // FIX: Properly handle team roster inserts
+        if (text.includes('INSERT INTO team_rosters')) {
+          const [userId, fieldPosition, userCardId] = params.map(p => parseInt(p, 10) || p);
           
-          // For team rosters, we need to join with user_cards and cards
-          const result = userRosters.map(tr => {
-            const userCard = storage.user_cards.find(uc => uc.id === tr.user_card_id);
-            if (!userCard) return null;
-            
-            const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
-            if (!cardTemplate) return null;
-            
-            return {
-              field_position: tr.field_position,
-              user_card_id: userCard.id,
-              card_template_id: cardTemplate.id,
-              player_name: cardTemplate.player_name,
-              image_url: cardTemplate.image_url,
-              card_actual_position: cardTemplate.position,
-              rarity: cardTemplate.rarity,
-              base_attack: cardTemplate.base_attack,
-              base_defense: cardTemplate.base_defense,
-              base_speed: cardTemplate.base_speed,
-              base_stamina: cardTemplate.base_stamina,
-              base_ovr: cardTemplate.base_ovr,
-              tier: cardTemplate.tier,
-              current_level: userCard.current_level
-            };
-          }).filter(Boolean);
+          // Check if the user card exists and belongs to the user
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
+          if (!userCard) {
+            throw new Error(`Card with ID ${userCardId} does not belong to user ${userId} or does not exist.`);
+          }
           
-          return { rows: result };
+          const id = ++lastIds.team_rosters;
+          const newRoster = {
+            id,
+            user_id: userId,
+            user_card_id: userCardId,
+            field_position: fieldPosition
+          };
+          storage.team_rosters.push(newRoster);
+          return { rows: [newRoster], rowCount: 1 };
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_big_impact_cards')) {
@@ -553,6 +584,19 @@ const createMockDb = () => {
           return { rows: user ? [user] : [] };
         }
         
+        // FIX: Properly handle team chemistry updates
+        if (text.includes('UPDATE users SET team_chemistry_points =')) {
+          const chemistryPoints = parseInt(params[0], 10);
+          const userId = parseInt(params[1], 10);
+          const userIndex = storage.users.findIndex(u => u.id === userId);
+          
+          if (userIndex !== -1) {
+            storage.users[userIndex].team_chemistry_points = chemistryPoints;
+            return { rowCount: 1 };
+          }
+          return { rowCount: 0 };
+        }
+        
         // Handle starter pack
         if (text.includes('SELECT id FROM cards WHERE position =')) {
           const position = params[0];
@@ -560,229 +604,11 @@ const createMockDb = () => {
           return { rows: cards.map(c => ({ id: c.id })) };
         }
         
-        // Handle DELETE FROM team_rosters
-        if (text.includes('DELETE FROM team_rosters WHERE user_id =')) {
-          const userId = parseInt(params[0], 10);
-          const initialLength = storage.team_rosters.length;
-          storage.team_rosters = storage.team_rosters.filter(tr => tr.user_id !== userId);
-          const rowCount = initialLength - storage.team_rosters.length;
-          return { rowCount };
-        }
-        
-        // Handle INSERT INTO team_rosters
-        if (text.includes('INSERT INTO team_rosters')) {
-          const [userId, fieldPosition, userCardId] = [
-            parseInt(params[0], 10), 
-            params[1], 
-            parseInt(params[2], 10)
-          ];
-          
-          const id = ++lastIds.team_rosters;
-          const newRoster = {
-            id,
-            user_id: userId,
-            field_position: fieldPosition,
-            user_card_id: userCardId
-          };
-          storage.team_rosters.push(newRoster);
-          return { rowCount: 1, rows: [newRoster] };
-        }
-        
-        // Fix: Handle SELECT id FROM user_cards WHERE id = $1 AND user_id = $2
-        if (text.includes('SELECT id FROM user_cards WHERE id =') && text.includes('AND user_id =')) {
-          const userCardId = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
-          
-          // For mock database, always return success for user 1
-          if (userId === 1) {
-            return { rows: [{ id: userCardId }] };
-          }
-          
-          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
-          return { rows: userCard ? [{ id: userCard.id }] : [] };
-        }
-        
-        // Fix: Handle SELECT uc.id, c.position AS card_native_position FROM user_cards uc JOIN cards c
-        if (text.includes('SELECT uc.id, c.position AS card_native_position FROM user_cards uc JOIN cards c')) {
-          const userCardId = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
-          
-          // For mock database, always return success for user 1
-          if (userId === 1) {
-            const userCard = storage.user_cards.find(uc => uc.id === userCardId) || 
-                            { id: userCardId, card_template_id: 1 };
-            const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id) || 
-                                { position: 'Forward' };
-            return { rows: [{ id: userCardId, card_native_position: cardTemplate.position }] };
-          }
-          
-          const userCard = storage.user_cards.find(uc => uc.id === userCardId && uc.user_id === userId);
-          if (!userCard) return { rows: [] };
-          
-          const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
-          if (!cardTemplate) return { rows: [] };
-          
-          return { rows: [{ id: userCard.id, card_native_position: cardTemplate.position }] };
-        }
-        
-        // Fix: Handle UPDATE users SET team_chemistry_points
-        if (text.includes('UPDATE users SET team_chemistry_points =')) {
-          const chemistryPoints = parseInt(params[0], 10);
-          const userId = parseInt(params[1], 10);
-          
-          const userIndex = storage.users.findIndex(u => u.id === userId);
-          if (userIndex >= 0) {
-            storage.users[userIndex].team_chemistry_points = chemistryPoints;
-            return { rowCount: 1 };
-          }
-          
-          // For mock database, create a user if it doesn't exist
-          if (userId === 1) {
-            storage.users.push({
-              id: userId,
-              username: 'test',
-              email: 'test@example.com',
-              team_chemistry_points: chemistryPoints
-            });
-            return { rowCount: 1 };
-          }
-          
-          return { rowCount: 0 };
-        }
-        
-        // Fix: Handle SELECT team_chemistry_points FROM users
-        if (text.includes('SELECT team_chemistry_points FROM users')) {
-          const userId = parseInt(params[0], 10);
-          const user = storage.users.find(u => u.id === userId);
-          
-          if (!user) {
-            // For mock database, create a user if it doesn't exist
-            if (userId === 1) {
-              return { rows: [{ team_chemistry_points: 0 }] };
-            }
-            return { rows: [] };
-          }
-          
-          return { rows: [{ team_chemistry_points: user.team_chemistry_points || 0 }] };
-        }
-        
-        // Fix: Handle SELECT uc.id as user_card_id, c.position as native_card_position
-        if (text.includes('SELECT uc.id as user_card_id, c.position as native_card_position')) {
-          const cardIdsParam = params[0];
-          let cardIds = [];
-          
-          // Parse the array parameter
-          if (Array.isArray(cardIdsParam)) {
-            cardIds = cardIdsParam;
-          } else if (typeof cardIdsParam === 'string' && cardIdsParam.startsWith('{') && cardIdsParam.endsWith('}')) {
-            // PostgreSQL array format: {1,2,3}
-            cardIds = cardIdsParam.slice(1, -1).split(',').map(id => parseInt(id.trim(), 10));
-          } else {
-            cardIds = [parseInt(cardIdsParam, 10)];
-          }
-          
-          // For mock database, return positions for all cards
-          const result = [];
-          for (const cardId of cardIds) {
-            const userCard = storage.user_cards.find(uc => uc.id === cardId);
-            if (userCard) {
-              const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
-              if (cardTemplate) {
-                result.push({
-                  user_card_id: userCard.id,
-                  native_card_position: cardTemplate.position
-                });
-              }
-            } else if (cardId) {
-              // For mock database, create a fake entry if card not found
-              result.push({
-                user_card_id: cardId,
-                native_card_position: 'Forward' // Default position
-              });
-            }
-          }
-          
-          return { rows: result };
-        }
-        
-        // Fix: Handle UPDATE users SET rating
-        if (text.includes('UPDATE users SET rating =')) {
-          const rating = params[0];
-          const userId = parseInt(params[1], 10);
-          
-          const userIndex = storage.users.findIndex(u => u.id === userId);
-          if (userIndex >= 0) {
-            storage.users[userIndex].rating = rating;
-            return { rowCount: 1 };
-          }
-          
-          // For mock database, create a user if it doesn't exist
-          if (userId === 1) {
-            storage.users.push({
-              id: userId,
-              username: 'test',
-              email: 'test@example.com',
-              rating: rating
-            });
-            return { rowCount: 1 };
-          }
-          
-          return { rowCount: 0 };
-        }
-        
-        // Fix: Handle SELECT ct.*, uc.current_level, uc.id as user_card_id FROM user_cards uc JOIN cards ct
-        if (text.includes('SELECT ct.*, uc.current_level, uc.id as user_card_id FROM user_cards uc JOIN cards ct')) {
-          const userCardId = parseInt(params[0], 10);
-          
-          const userCard = storage.user_cards.find(uc => uc.id === userCardId);
-          if (!userCard) {
-            // For mock database, create a fake entry if card not found
-            return { 
-              rows: [{
-                id: 1, // Card template ID
-                user_card_id: userCardId,
-                current_level: 1,
-                player_name: 'Mock Player',
-                image_url: 'forward.png',
-                position: 'Forward',
-                rarity: 'Common',
-                base_attack: 50,
-                base_defense: 50,
-                base_speed: 50,
-                base_stamina: 50,
-                base_ovr: 50,
-                tier: 'bronze',
-                base_skating: 50,
-                base_shooting: 50,
-                base_passing: 50,
-                base_defense_skill: 50,
-                base_physical: 50,
-                base_reflexes: 50,
-                base_puck_control: 50,
-                base_positioning: 50
-              }] 
-            };
-          }
-          
-          const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
-          if (!cardTemplate) {
-            return { rows: [] };
-          }
-          
-          return { 
-            rows: [{
-              ...cardTemplate,
-              user_card_id: userCard.id,
-              current_level: userCard.current_level
-            }] 
-          };
-        }
-        
         // Default response for unhandled queries
         return { rows: [], rowCount: 0 };
       } catch (error) {
         console.error('Mock DB Query Error:', error);
-        return { rows: [], rowCount: 0 };
+        throw error; // Re-throw the error to be handled by the caller
       }
     },
     connect: async () => {

@@ -33,7 +33,7 @@ router.post('/starter-pack', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Стартовый набор уже получен или у вас уже есть карты.' });
         }
 
-        // 2. Определяем требования к набору
+        // 2. Определяем требования к набору - FIXED: Now correctly requires 6 cards
         const requiredPositions = {
             'Goaltender': 1,
             'Defenseman': 2,
