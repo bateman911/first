@@ -535,7 +535,7 @@ const createMockDb = () => {
             };
           }).filter(Boolean);
           
-          return { rows: result };
+          return { rows: result, rowCount: result.length };
         }
         
         // Handle DELETE FROM team_rosters
@@ -544,6 +544,7 @@ const createMockDb = () => {
           const initialCount = storage.team_rosters.length;
           storage.team_rosters = storage.team_rosters.filter(tr => tr.user_id !== userId);
           const rowCount = initialCount - storage.team_rosters.length;
+          console.log(`Deleted ${rowCount} team roster entries for user ${userId}`);
           return { rowCount };
         }
         
@@ -564,6 +565,7 @@ const createMockDb = () => {
           if (existingPosition) {
             // Update existing position
             existingPosition.user_card_id = userCardId;
+            console.log(`Updated roster position ${fieldPosition} for user ${userId} with card ${userCardId}`);
             return { rowCount: 1 };
           } else {
             // Add new position
@@ -574,6 +576,7 @@ const createMockDb = () => {
               field_position: fieldPosition,
               user_card_id: userCardId
             });
+            console.log(`Added new roster position ${fieldPosition} for user ${userId} with card ${userCardId}`);
             return { rowCount: 1 };
           }
         }
@@ -584,6 +587,7 @@ const createMockDb = () => {
           const user = storage.users.find(u => u.id === userId);
           if (user) {
             user.team_chemistry_points = chemistryPoints;
+            console.log(`Updated team_chemistry_points to ${chemistryPoints} for user ${userId}`);
             return { rowCount: 1 };
           }
           return { rowCount: 0 };
