@@ -730,6 +730,54 @@ const createMockDb = () => {
           return { rowCount: 0 };
         }
         
+        // Fix: Handle SELECT ct.*, uc.current_level, uc.id as user_card_id FROM user_cards uc JOIN cards ct
+        if (text.includes('SELECT ct.*, uc.current_level, uc.id as user_card_id FROM user_cards uc JOIN cards ct')) {
+          const userCardId = parseInt(params[0], 10);
+          
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId);
+          if (!userCard) {
+            // For mock database, create a fake entry if card not found
+            return { 
+              rows: [{
+                id: 1, // Card template ID
+                user_card_id: userCardId,
+                current_level: 1,
+                player_name: 'Mock Player',
+                image_url: 'forward.png',
+                position: 'Forward',
+                rarity: 'Common',
+                base_attack: 50,
+                base_defense: 50,
+                base_speed: 50,
+                base_stamina: 50,
+                base_ovr: 50,
+                tier: 'bronze',
+                base_skating: 50,
+                base_shooting: 50,
+                base_passing: 50,
+                base_defense_skill: 50,
+                base_physical: 50,
+                base_reflexes: 50,
+                base_puck_control: 50,
+                base_positioning: 50
+              }] 
+            };
+          }
+          
+          const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
+          if (!cardTemplate) {
+            return { rows: [] };
+          }
+          
+          return { 
+            rows: [{
+              ...cardTemplate,
+              user_card_id: userCard.id,
+              current_level: userCard.current_level
+            }] 
+          };
+        }
+        
         // Default response for unhandled queries
         return { rows: [], rowCount: 0 };
       } catch (error) {

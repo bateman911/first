@@ -93,10 +93,10 @@ router.get('/team-status', authMiddleware, async (req, res) => {
 
                 // 3б. Для каждой карты получаем ее базовые данные
                 const cardDataResult = await client.query(
-                    `SELECT ct.*, uc.current_level, uc.id as user_card_id /* и другие поля из uc, если нужны */
+                    `SELECT ct.*, uc.current_level, uc.id as user_card_id
                      FROM user_cards uc 
                      JOIN cards ct ON uc.card_template_id = ct.id 
-                     WHERE uc.id = $1`, // Убрана проверка на user_id для работы с mock DB
+                     WHERE uc.id = $1`,
                     [userCardId] 
                 );
                 if (cardDataResult.rows.length === 0) continue; // Пропускаем, если карта не найдена (маловероятно)
