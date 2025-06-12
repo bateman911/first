@@ -99,25 +99,25 @@ const createMockDb = () => {
       },
       {
         id: 5,
-        player_name: 'Alex Blocker',
-        image_url: 'defenseman.png',
-        position: 'Defenseman',
+        player_name: 'Alex Young',
+        image_url: 'forward.png',
+        position: 'Forward',
         rarity: 'Common',
         base_attack: 50,
-        base_defense: 75,
-        base_speed: 55,
-        base_stamina: 70,
-        description: 'Solid defenseman',
-        base_ovr: 63,
+        base_defense: 55,
+        base_speed: 50,
+        base_stamina: 50,
+        description: 'Young player (18 y.o.)',
+        base_ovr: 51,
         tier: 'bronze',
-        base_skating: 55,
-        base_shooting: 45,
-        base_passing: 60,
-        base_defense_skill: 75,
-        base_physical: 70,
-        base_reflexes: 45,
-        base_puck_control: 65,
-        base_positioning: 70
+        base_skating: 50,
+        base_shooting: 50,
+        base_passing: 55,
+        base_defense_skill: 55,
+        base_physical: 50,
+        base_reflexes: 50,
+        base_puck_control: 55,
+        base_positioning: 50
       },
       {
         id: 6,
@@ -139,6 +139,50 @@ const createMockDb = () => {
         base_physical: 80,
         base_reflexes: 50,
         base_puck_control: 85,
+        base_positioning: 50
+      },
+      {
+        id: 7,
+        player_name: 'Nikita Nesterov',
+        image_url: 'defenseman.png',
+        position: 'Defenseman',
+        rarity: 'Epic',
+        base_attack: 70,
+        base_defense: 75,
+        base_speed: 80,
+        base_stamina: 85,
+        description: 'Legend defenseman',
+        base_ovr: 77,
+        tier: 'gold',
+        base_skating: 80,
+        base_shooting: 65,
+        base_passing: 75,
+        base_defense_skill: 75,
+        base_physical: 85,
+        base_reflexes: 50,
+        base_puck_control: 80,
+        base_positioning: 50
+      },
+      {
+        id: 8,
+        player_name: 'Sergei Mestnov',
+        image_url: 'defenseman.png',
+        position: 'Defenseman',
+        rarity: 'Common',
+        base_attack: 55,
+        base_defense: 50,
+        base_speed: 49,
+        base_stamina: 53,
+        description: 'Defenseman',
+        base_ovr: 52,
+        tier: 'bronze',
+        base_skating: 49,
+        base_shooting: 50,
+        base_passing: 55,
+        base_defense_skill: 50,
+        base_physical: 55,
+        base_reflexes: 50,
+        base_puck_control: 55,
         base_positioning: 50
       }
     ],
@@ -198,6 +242,26 @@ const createMockDb = () => {
         id: 6,
         user_id: 1,
         card_template_id: 6,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 7,
+        user_id: 1,
+        card_template_id: 7,
+        current_level: 1,
+        experience_points: 0,
+        acquired_at: new Date().toISOString(),
+        games_remaining: 20,
+        renewals_left: 5
+      },
+      {
+        id: 8,
+        user_id: 1,
+        card_template_id: 8,
         current_level: 1,
         experience_points: 0,
         acquired_at: new Date().toISOString(),
@@ -307,8 +371,8 @@ const createMockDb = () => {
   // Last ID tracking for auto-increment
   const lastIds = {
     users: 0,
-    cards: 6,
-    user_cards: 6,
+    cards: 8,
+    user_cards: 8,
     team_rosters: 0,
     user_big_impact_cards: 0,
     big_impact_card_templates: 3,
@@ -636,6 +700,35 @@ const createMockDb = () => {
           const position = params[0];
           const cards = storage.cards.filter(c => c.position === position);
           return { rows: cards.map(c => ({ id: c.id })) };
+        }
+        
+        // Handle team chemistry points query
+        if (text.includes('SELECT team_chemistry_points FROM users WHERE id =')) {
+          const userId = params[0];
+          const user = storage.users.find(u => u.id === userId);
+          return { rows: user ? [{ team_chemistry_points: user.team_chemistry_points || 0 }] : [] };
+        }
+        
+        // Handle card position query for chemistry calculation
+        if (text.includes('SELECT uc.id as user_card_id, c.position as native_card_position')) {
+          const cardIds = params[0];
+          const results = [];
+          
+          // For each card ID in the array
+          cardIds.forEach(cardId => {
+            const userCard = storage.user_cards.find(uc => uc.id === cardId);
+            if (userCard) {
+              const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
+              if (cardTemplate) {
+                results.push({
+                  user_card_id: userCard.id,
+                  native_card_position: cardTemplate.position
+                });
+              }
+            }
+          });
+          
+          return { rows: results };
         }
         
         // Default response for unhandled queries
