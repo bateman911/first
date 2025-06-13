@@ -735,6 +735,49 @@ const createMockDb = () => {
           return { rows: results };
         }
         
+        // Handle INSERT INTO user_card_applied_skills
+        if (text.includes('INSERT INTO user_card_applied_skills')) {
+          const [userCardId, skillTemplateId, boostPointsAdded] = params;
+          const id = ++lastIds.user_card_applied_skills;
+          
+          // Create new skill record
+          const newSkill = {
+            id,
+            user_card_id: userCardId,
+            skill_template_id: skillTemplateId,
+            boost_points_added: boostPointsAdded || 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          storage.user_card_applied_skills.push(newSkill);
+          console.log(`Added new skill ID ${id} for card ${userCardId}, skill template ${skillTemplateId}`);
+          
+          return { 
+            rows: [{ 
+              id, 
+              skill_template_id: skillTemplateId, 
+              boost_points_added: boostPointsAdded || 0 
+            }],
+            rowCount: 1
+          };
+        }
+        
+        // Handle UPDATE user_card_applied_skills
+        if (text.includes('UPDATE user_card_applied_skills SET boost_points_added =')) {
+          const [newBoostPoints, skillId] = params;
+          const skill = storage.user_card_applied_skills.find(s => s.id === skillId);
+          
+          if (skill) {
+            skill.boost_points_added = newBoostPoints;
+            skill.updated_at = new Date().toISOString();
+            console.log(`Updated skill ID ${skillId} boost points to ${newBoostPoints}`);
+            return { rowCount: 1 };
+          }
+          
+          return { rowCount: 0 };
+        }
+        
         // Default response for unhandled queries
         return { rows: [], rowCount: 0 };
       } catch (error) {
