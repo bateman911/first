@@ -410,6 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function saveTeam() {
         if (!saveTeamButton || saveTeamButton.disabled) return;
         const rosterToSave = getCurrentRosterForSave();
+        
+        console.log("Attempting to save roster:", rosterToSave);
 
         const uniqueCardIdsInRoster = new Set();
         let hasDuplicates = false;
@@ -440,7 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
                 body: JSON.stringify({ roster: rosterToSave }) 
             });
+            
+            console.log("Save response status:", response.status);
+            
             const data = await response.json();
+            console.log("Save response data:", data);
+            
             if (response.ok) {
                 updateTeamFormMessage(data.message || 'Команда сохранена!', 'success');
                 initialRosterStateForSave = { ...rosterToSave }; 
