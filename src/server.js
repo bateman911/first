@@ -95,7 +95,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 username: user.username
                 // Можно добавить email или другие данные в токен, если нужно
             };
-            const appToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const appToken = jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '1h' });
 
             // Передаем наш токен и профиль Google в callback для дальнейшей обработки (например, редиректа с токеном)
             return done(null, { appToken, profile });
