@@ -92,7 +92,7 @@ router.get('/my-boosts', authMiddleware, async (req, res) => {
                 bt.quality AS boost_quality, 
                 bt.points_value AS boost_points_value,
                 bt.target_skill_template_id,
-                pst.name AS target_skill_name, -- Имя целевого скилла
+                pst.name AS target_skill_name, 
                 bt.image_url AS boost_image_url
              FROM user_boosts_inventory ubi
              JOIN boost_templates bt ON ubi.boost_template_id = bt.id
