@@ -27,7 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Configure Google Strategy BEFORE defining routes
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+if (process.env.GOOGLE_CLIENT_ID && 
+    process.env.GOOGLE_CLIENT_SECRET && 
+    process.env.GOOGLE_CALLBACK_URL && 
+    process.env.GOOGLE_CALLBACK_URL.trim() !== '') {
+    
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -148,7 +152,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     });
 
 } else {
-    console.warn('⚠️  Google OAuth credentials not found in environment variables. Google authentication will be disabled.');
+    console.warn('⚠️  Google OAuth credentials not found or incomplete in environment variables. Google authentication will be disabled.');
+    console.warn('Required: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL');
 }
 
 // API Routes - Mount ALL API routes BEFORE static file serving
