@@ -622,7 +622,7 @@ const createMockDb = () => {
         
         if (text.includes('SELECT') && text.includes('FROM user_card_applied_skills')) {
           const userCardId = params[0];
-          const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === userCardId);
+          const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === parseInt(userCardId));
           
           const result = appliedSkills.map(as => {
             const template = storage.player_skill_templates.find(t => t.id === as.skill_template_id);
@@ -735,14 +735,14 @@ const createMockDb = () => {
           return { rows: results };
         }
         
-        // NEW: Handle INSERT INTO user_card_applied_skills
+        // FIXED: Handle INSERT INTO user_card_applied_skills
         if (text.includes('INSERT INTO user_card_applied_skills')) {
           const [userCardId, skillTemplateId, boostPointsAdded] = params;
           const id = ++lastIds.user_card_applied_skills;
           
           // Check if the skill already exists for this card
           const existingSkill = storage.user_card_applied_skills.find(
-            s => s.user_card_id === userCardId && s.skill_template_id === skillTemplateId
+            s => s.user_card_id === parseInt(userCardId) && s.skill_template_id === parseInt(skillTemplateId)
           );
           
           if (existingSkill) {
@@ -752,9 +752,9 @@ const createMockDb = () => {
           // Create new skill
           const newAppliedSkill = {
             id,
-            user_card_id: userCardId,
-            skill_template_id: skillTemplateId,
-            boost_points_added: boostPointsAdded || 0,
+            user_card_id: parseInt(userCardId),
+            skill_template_id: parseInt(skillTemplateId),
+            boost_points_added: parseInt(boostPointsAdded || 0),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
@@ -765,26 +765,50 @@ const createMockDb = () => {
           return { 
             rows: [{ 
               id, 
-              skill_template_id: skillTemplateId, 
-              boost_points_added: boostPointsAdded || 0 
+              skill_template_id: parseInt(skillTemplateId), 
+              boost_points_added: parseInt(boostPointsAdded || 0) 
             }],
             rowCount: 1
           };
         }
         
-        // NEW: Handle UPDATE user_card_applied_skills
+        // FIXED: Handle UPDATE user_card_applied_skills
         if (text.includes('UPDATE user_card_applied_skills SET boost_points_added =')) {
           const [newBoostPoints, skillId] = params;
-          const skill = storage.user_card_applied_skills.find(s => s.id === skillId);
+          const skill = storage.user_card_applied_skills.find(s => s.id === parseInt(skillId));
           
           if (skill) {
-            skill.boost_points_added = newBoostPoints;
+            skill.boost_points_added = parseInt(newBoostPoints);
             skill.updated_at = new Date().toISOString();
             console.log(`Updated skill ${skillId} boost points to ${newBoostPoints}`);
             return { rowCount: 1 };
           }
           
           return { rowCount: 0 };
+        }
+        
+        // Handle SELECT for a specific applied skill by ID
+        if (text.includes('SELECT ucas.id AS applied_skill_id, ucas.skill_template_id, pst.name AS skill_name')) {
+          const skillId = params[0];
+          const skill = storage.user_card_applied_skills.find(s => s.id === parseInt(skillId));
+          
+          if (skill) {
+            const template = storage.player_skill_templates.find(t => t.id === skill.skill_template_id);
+            if (template) {
+              return {
+                rows: [{
+                  applied_skill_id: skill.id,
+                  skill_template_id: skill.skill_template_id,
+                  skill_name: template.name,
+                  skill_description: template.description,
+                  applicable_to_role: template.applicable_to_role,
+                  boost_points_added: skill.boost_points_added
+                }]
+              };
+            }
+          }
+          
+          return { rows: [] };
         }
         
         // Default response for unhandled queries
