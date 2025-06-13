@@ -298,7 +298,7 @@ const createMockDb = () => {
       }
     ],
     user_boosts_inventory: [],
-    user_card_applied_skills: [], // Initialize as empty array
+    user_card_applied_skills: [],
     player_skill_templates: [
       {
         id: 1,
@@ -621,7 +621,7 @@ const createMockDb = () => {
         }
         
         if (text.includes('SELECT') && text.includes('FROM user_card_applied_skills')) {
-          const userCardId = parseInt(params[0]);
+          const userCardId = params[0];
           const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === userCardId);
           
           const result = appliedSkills.map(as => {
@@ -735,51 +735,52 @@ const createMockDb = () => {
           return { rows: results };
         }
         
-        // Fix for INSERT INTO user_card_applied_skills
+        // NEW: Handle INSERT INTO user_card_applied_skills
         if (text.includes('INSERT INTO user_card_applied_skills')) {
-          // Extract parameters correctly
-          let userCardId, skillTemplateId, boostPointsAdded = 0;
-          
-          if (params.length === 3) {
-            [userCardId, skillTemplateId, boostPointsAdded] = params;
-          } else if (params.length === 2) {
-            [userCardId, skillTemplateId] = params;
-          }
-          
-          // Convert to integers
-          userCardId = parseInt(userCardId);
-          skillTemplateId = parseInt(skillTemplateId);
-          boostPointsAdded = parseInt(boostPointsAdded || 0);
-          
-          // Generate new ID
+          const [userCardId, skillTemplateId, boostPointsAdded] = params;
           const id = ++lastIds.user_card_applied_skills;
           
-          // Create the new applied skill
+          // Check if the skill already exists for this card
+          const existingSkill = storage.user_card_applied_skills.find(
+            s => s.user_card_id === userCardId && s.skill_template_id === skillTemplateId
+          );
+          
+          if (existingSkill) {
+            return { rows: [], rowCount: 0 }; // Skill already exists
+          }
+          
+          // Create new skill
           const newAppliedSkill = {
             id,
             user_card_id: userCardId,
             skill_template_id: skillTemplateId,
-            boost_points_added: boostPointsAdded,
+            boost_points_added: boostPointsAdded || 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
           
-          // Add to storage
           storage.user_card_applied_skills.push(newAppliedSkill);
+          console.log(`Added new skill ${skillTemplateId} to card ${userCardId} with ID ${id}`);
           
-          console.log(`Added new skill ${skillTemplateId} to card ${userCardId} with ${boostPointsAdded} points`);
-          return { rows: [{ id, skill_template_id: skillTemplateId, boost_points_added: boostPointsAdded }], rowCount: 1 };
+          return { 
+            rows: [{ 
+              id, 
+              skill_template_id: skillTemplateId, 
+              boost_points_added: boostPointsAdded || 0 
+            }],
+            rowCount: 1
+          };
         }
         
-        // Fix for UPDATE user_card_applied_skills
+        // NEW: Handle UPDATE user_card_applied_skills
         if (text.includes('UPDATE user_card_applied_skills SET boost_points_added =')) {
-          const [newBoostPoints, appliedSkillId] = params;
-          const appliedSkill = storage.user_card_applied_skills.find(as => as.id === parseInt(appliedSkillId));
+          const [newBoostPoints, skillId] = params;
+          const skill = storage.user_card_applied_skills.find(s => s.id === skillId);
           
-          if (appliedSkill) {
-            appliedSkill.boost_points_added = parseInt(newBoostPoints);
-            appliedSkill.updated_at = new Date().toISOString();
-            console.log(`Updated skill ${appliedSkill.skill_template_id} for card ${appliedSkill.user_card_id} to ${newBoostPoints} points`);
+          if (skill) {
+            skill.boost_points_added = newBoostPoints;
+            skill.updated_at = new Date().toISOString();
+            console.log(`Updated skill ${skillId} boost points to ${newBoostPoints}`);
             return { rowCount: 1 };
           }
           
