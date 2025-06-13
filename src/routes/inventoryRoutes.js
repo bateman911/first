@@ -373,8 +373,8 @@ router.post('/player-cards/:userCardId/add-skill', authMiddleware, async (req, r
 
         // 6. INSERT в user_card_applied_skills с boost_points_added = 0
         const insertResult = await client.query(
-            'INSERT INTO user_card_applied_skills (user_card_id, skill_template_id, boost_points_added) VALUES ($1, $2, 0) RETURNING id, skill_template_id, boost_points_added',
-            [userCardId, skillTemplateIdToAdd]
+            'INSERT INTO user_card_applied_skills (user_card_id, skill_template_id, boost_points_added) VALUES ($1, $2, $3) RETURNING id, skill_template_id, boost_points_added',
+            [userCardId, skillTemplateIdToAdd, 0]
         );
         const newAppliedSkill = insertResult.rows[0];
         console.log(`[UserID: ${currentUserId}] AddSkill: Скилл ID ${newAppliedSkill.id} успешно добавлен к карте ${userCardId}`);
