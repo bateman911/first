@@ -735,6 +735,48 @@ const createMockDb = () => {
           return { rows: results };
         }
         
+        // Handle SELECT for card native position
+        if (text.includes('SELECT uc.id, c.position AS card_native_position FROM user_cards uc JOIN cards c')) {
+          const userCardId = parseInt(params[0]);
+          const userCard = storage.user_cards.find(uc => uc.id === userCardId);
+          
+          if (userCard) {
+            const cardTemplate = storage.cards.find(c => c.id === userCard.card_template_id);
+            if (cardTemplate) {
+              return {
+                rows: [{
+                  id: userCard.id,
+                  card_native_position: cardTemplate.position
+                }]
+              };
+            }
+          }
+          
+          // For mock database, return a default position if card not found
+          return {
+            rows: [{
+              id: userCardId,
+              card_native_position: 'Forward' // Default position
+            }]
+          };
+        }
+        
+        // Handle SELECT for skill applicable_to_role
+        if (text.includes('SELECT applicable_to_role FROM player_skill_templates WHERE id =')) {
+          const skillTemplateId = parseInt(params[0]);
+          const skillTemplate = storage.player_skill_templates.find(t => t.id === skillTemplateId);
+          
+          if (skillTemplate) {
+            return {
+              rows: [{
+                applicable_to_role: skillTemplate.applicable_to_role
+              }]
+            };
+          }
+          
+          return { rows: [] };
+        }
+        
         // FIXED: Handle INSERT INTO user_card_applied_skills
         if (text.includes('INSERT INTO user_card_applied_skills')) {
           const [userCardId, skillTemplateId, boostPointsAdded] = params;
