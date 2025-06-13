@@ -151,7 +151,7 @@ const createMockDb = () => {
         base_defense: 75,
         base_speed: 80,
         base_stamina: 85,
-        description: 'Legend',
+        description: 'Legend defenseman',
         base_ovr: 77,
         tier: 'gold',
         base_skating: 80,
@@ -173,7 +173,7 @@ const createMockDb = () => {
         base_defense: 50,
         base_speed: 49,
         base_stamina: 53,
-        description: 'defens',
+        description: 'Defenseman',
         base_ovr: 52,
         tier: 'bronze',
         base_skating: 49,
@@ -622,7 +622,7 @@ const createMockDb = () => {
         
         if (text.includes('SELECT') && text.includes('FROM user_card_applied_skills')) {
           const userCardId = params[0];
-          const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === parseInt(userCardId));
+          const appliedSkills = storage.user_card_applied_skills.filter(s => s.user_card_id === userCardId);
           
           const result = appliedSkills.map(as => {
             const template = storage.player_skill_templates.find(t => t.id === as.skill_template_id);
@@ -735,35 +735,29 @@ const createMockDb = () => {
           return { rows: results };
         }
         
-        // Handle INSERT INTO user_card_applied_skills
+        // Fix for INSERT INTO user_card_applied_skills
         if (text.includes('INSERT INTO user_card_applied_skills')) {
           const [userCardId, skillTemplateId, boostPointsAdded] = params;
           const id = ++lastIds.user_card_applied_skills;
           
-          // Create new applied skill
+          // Create the new applied skill
           const newAppliedSkill = {
             id,
             user_card_id: parseInt(userCardId),
             skill_template_id: parseInt(skillTemplateId),
-            boost_points_added: parseInt(boostPointsAdded || 0),
+            boost_points_added: parseInt(boostPointsAdded) || 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
           
+          // Add to storage
           storage.user_card_applied_skills.push(newAppliedSkill);
-          console.log(`Added new applied skill: ${JSON.stringify(newAppliedSkill)}`);
           
-          return { 
-            rows: [{ 
-              id, 
-              skill_template_id: skillTemplateId, 
-              boost_points_added: boostPointsAdded || 0 
-            }],
-            rowCount: 1
-          };
+          console.log(`Added new skill ${skillTemplateId} to card ${userCardId} with ${boostPointsAdded} points`);
+          return { rows: [{ id }] };
         }
         
-        // Handle UPDATE user_card_applied_skills
+        // Fix for UPDATE user_card_applied_skills
         if (text.includes('UPDATE user_card_applied_skills SET boost_points_added =')) {
           const [newBoostPoints, appliedSkillId] = params;
           const appliedSkill = storage.user_card_applied_skills.find(as => as.id === appliedSkillId);
@@ -771,7 +765,7 @@ const createMockDb = () => {
           if (appliedSkill) {
             appliedSkill.boost_points_added = parseInt(newBoostPoints);
             appliedSkill.updated_at = new Date().toISOString();
-            console.log(`Updated applied skill ${appliedSkillId} with new boost points: ${newBoostPoints}`);
+            console.log(`Updated skill ${appliedSkill.skill_template_id} for card ${appliedSkill.user_card_id} to ${newBoostPoints} points`);
             return { rowCount: 1 };
           }
           
